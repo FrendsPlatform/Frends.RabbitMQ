@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using Frends.RabbitMQ.Publish.Definitions;
 using RabbitMQ.Client;
+using System.Runtime.Caching;
+using System.Threading;
 
 namespace Frends.RabbitMQ.Publish;
 
@@ -13,30 +15,68 @@ namespace Frends.RabbitMQ.Publish;
 /// </summary>
 public class RabbitMQ
 {
+    internal static readonly ObjectCache RabbitMQConnectionCache = MemoryCache.Default;
+
+    private static void RemovedCallback(CacheEntryRemovedArguments arg)
+    {
+        if (arg.RemovedReason != CacheEntryRemovedReason.Removed)
+        {
+            var item = arg.CacheItem.Value as IDisposable;
+            if (item != null)
+                item.Dispose();
+        }
+    }
+
     /// <summary>
     /// Publish message to RabbitMQ queue in UTF8 or byte array format.
     /// [Documentation](https://tasks.frends.com/tasks/frends-tasks/Frends.RabbitMQ.Publish)
     /// </summary>
     /// <param name="input">Input parameters</param>
     /// <param name="connection">Connection parameters.</param>
+    /// <param name="cancellationToken">CancellationToken given by Frends to terminate the Task.</param>
     /// <returns>Object { string DataFormat, string DataString, byte[] DataByteArray, Dictionary&lt;string, string&gt; Headers }</returns>
-    public static Result Publish([PropertyTab] Input input, [PropertyTab] Connection connection)
+    public static Result Publish([PropertyTab] Input input, [PropertyTab] Connection connection, CancellationToken cancellationToken)
     {
-        using var connectionHelper = new ConnectionHelper();
+        var factory = new ConnectionFactory();
+
+        switch (connection.AuthenticationMethod)
+        {
+            case AuthenticationMethod.URI:
+                factory.Uri = new Uri(connection.Host);
+                break;
+            case AuthenticationMethod.Host:
+                if (!string.IsNullOrWhiteSpace(connection.Username) || !string.IsNullOrWhiteSpace(connection.Password))
+                {
+                    factory.UserName = connection.Username;
+                    factory.Password = connection.Password;
+                }
+                factory.HostName = connection.Host;
+
+                if (connection.Port != 0) factory.Port = connection.Port;
+
+                break;
+        }
+
+        if (connection.Timeout != 0)
+            factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
+
+        var channel = GetRabbitMQChannel(connection, factory, cancellationToken);
 
         var dataType = input.InputType.Equals(InputType.ByteArray) ? "ByteArray" : "String";
         var data = input.InputType.Equals(InputType.ByteArray) ? input.DataByteArray : Encoding.UTF8.GetBytes(input.DataString);
-        if (data.Length == 0) throw new ArgumentException("Publish: Message data is missing.");
 
-        OpenConnectionIfClosed(connectionHelper, connection);
+        if (data.Length == 0)
+            throw new ArgumentException("Publish: Message data is missing.");
 
         if (connection.Create)
         {
             // Create args dictionary for quorum queue arguments
-            var args = new Dictionary<string, object>();
-            args.Add("x-queue-type", "quorum");
+            var args = new Dictionary<string, object>
+            {
+                { "x-queue-type", "quorum" }
+            };
 
-            connectionHelper.AMQPModel.QueueDeclare(queue: connection.QueueName,
+            channel.QueueDeclare(queue: connection.QueueName,
                 durable: connection.Durable,
                 exclusive: false,
                 autoDelete: connection.AutoDelete,
@@ -44,14 +84,14 @@ public class RabbitMQ
 
             if (!string.IsNullOrEmpty(connection.ExchangeName))
             {
-                connectionHelper.AMQPModel.QueueBind(queue: connection.QueueName,
+                channel.QueueBind(queue: connection.QueueName,
                     exchange: connection.ExchangeName,
                     routingKey: connection.RoutingKey,
                     arguments: null);
             }
         }
 
-        var basicProperties = connectionHelper.AMQPModel.CreateBasicProperties();
+        var basicProperties = channel.CreateBasicProperties();
         basicProperties.Persistent = connection.Durable;
         AddHeadersToBasicProperties(basicProperties, input.Headers);
 
@@ -61,7 +101,7 @@ public class RabbitMQ
             foreach (var head in basicProperties.Headers)
                 headers.Add(head.Key.ToString(), head.Value.ToString());
 
-        connectionHelper.AMQPModel.BasicPublish(exchange: connection.ExchangeName,
+        channel.BasicPublish(exchange: connection.ExchangeName,
             routingKey: connection.RoutingKey,
             basicProperties: basicProperties,
             body: data);
@@ -70,64 +110,6 @@ public class RabbitMQ
             !string.IsNullOrEmpty(input.DataString) ? input.DataString : Encoding.UTF8.GetString(input.DataByteArray),
             input.DataByteArray ?? Encoding.UTF8.GetBytes(input.DataString),
             headers);
-    }
-
-    private static void OpenConnectionIfClosed(ConnectionHelper connectionHelper, Connection connection)
-    {
-        // Close connection if hostname has changed.
-        if (IsConnectionHostNameChanged(connectionHelper, connection))
-        {
-            connectionHelper.AMQPModel.Close();
-            connectionHelper.AMQPConnection.Close();
-        }
-
-        if (connectionHelper.AMQPConnection == null || connectionHelper.AMQPConnection.IsOpen == false)
-        {
-            var factory = new ConnectionFactory();
-
-            switch (connection.AuthenticationMethod)
-            {
-                case AuthenticationMethod.URI:
-                    factory.Uri = new Uri(connection.Host);
-                    break;
-                case AuthenticationMethod.Host:
-                    if (!string.IsNullOrWhiteSpace(connection.Username) || !string.IsNullOrWhiteSpace(connection.Password))
-                    {
-                        factory.UserName = connection.Username;
-                        factory.Password = connection.Password;
-                    }
-                    factory.HostName = connection.Host;
-
-                    if (connection.Port != 0) factory.Port = connection.Port;
-
-                    break;
-            }
-
-            if (connection.Timeout != 0) factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
-
-            connectionHelper.AMQPConnection = factory.CreateConnection();
-        }
-
-        if (connectionHelper.AMQPModel == null || connectionHelper.AMQPModel.IsClosed)
-            connectionHelper.AMQPModel = connectionHelper.AMQPConnection.CreateModel();
-    }
-
-    private static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Connection connection)
-    {
-        // If no current connection, host name is not changed
-        if (connectionHelper.AMQPConnection == null || connectionHelper.AMQPConnection.IsOpen == false)
-            return false;
-
-        switch (connection.AuthenticationMethod)
-        {
-            case AuthenticationMethod.URI:
-                var newUri = new Uri(connection.Host);
-                return (!connectionHelper.AMQPConnection.Endpoint.HostName.Equals(newUri.Host));
-            case AuthenticationMethod.Host:
-                return (!connectionHelper.AMQPConnection.Endpoint.HostName.Equals(connection.Host));
-            default:
-                throw new ArgumentException($"IsConnectionHostNameChanged: AuthenticationMethod missing.");
-        }
     }
 
     private static void AddHeadersToBasicProperties(IBasicProperties basicProperties, Header[] headers)
@@ -190,5 +172,97 @@ public class RabbitMQ
 
         if (messageHeaders.Any())
             basicProperties.Headers = messageHeaders;
+    }
+
+    private static IModel GetRabbitMQChannel(Connection connection, ConnectionFactory factory, CancellationToken cancellationToken)
+    {
+        var conn = GetRabbitMQConnection(connection, factory, cancellationToken);
+
+        var retryCount = 0;
+        while (retryCount < 5)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var channel = new RabbitMQChannel() { AMQPModel = conn.CreateModel() };
+                return channel.AMQPModel;
+            }
+            catch (Exception ex)
+            {
+                if (ex.Message.Contains("The connection cannot support any more channels."))
+                {
+                    conn = GetRabbitMQConnection(connection, factory, cancellationToken, true);
+                    continue;
+                }
+                // Log the exception here
+                // If the maximum number of retries has been reached, rethrow the exception
+                if (++retryCount >= 5)
+                    throw new Exception($"Getting Exception : {ex.Message} after {retryCount} retries.", ex);
+
+                // Wait for a certain period of time before retrying
+                Thread.Sleep(TimeSpan.FromSeconds(2));
+            }
+        }
+        
+        return null;
+    }
+
+    private static IConnection GetRabbitMQConnection(Connection connection, ConnectionFactory factory, CancellationToken cancellationToken, bool forceCreate = false)
+    {
+        var cacheKey = GetCacheKey(connection);
+
+        if (!forceCreate)
+        {
+            var key = GetCacheKeyFromMemoryCache(cacheKey);
+            if (key != null)
+            {
+                if (RabbitMQConnectionCache.Get(GetCacheKeyFromMemoryCache(cacheKey)) is RabbitMQConnection conn && conn.AMQPConnection.IsOpen)
+                    return conn.AMQPConnection;
+            }
+            
+        }
+
+        var retryCount = 0;
+        while (retryCount < 5)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var rabbitMQConnection = new RabbitMQConnection { AMQPConnection = factory.CreateConnection() };
+                RabbitMQConnectionCache.Add($"{Guid.NewGuid()}_{cacheKey}", rabbitMQConnection, new CacheItemPolicy() { RemovedCallback = RemovedCallback, SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds) });
+                return rabbitMQConnection.AMQPConnection;
+            }
+            catch (Exception ex)
+            {
+                // Log the exception here
+                // If the maximum number of retries has been reached, rethrow the exception
+                if (++retryCount >= 5)
+                    throw new Exception($"Getting Exception : {ex.Message} after {retryCount} retries.", ex);
+
+                // Wait for a certain period of time before retrying
+                Thread.Sleep(TimeSpan.FromSeconds(2));
+            }
+        }
+
+        return null;
+    }
+
+    private static string GetCacheKey(Connection connection)
+    {
+        var key = $"{connection.Host}:";
+        if (connection.AuthenticationMethod == AuthenticationMethod.Host)
+        {
+            key += $"{connection.Username}:{connection.Password}:{connection.Port}:";
+        }
+
+        key += $"{connection.QueueName}:{connection.ExchangeName}:{connection.RoutingKey}:" +
+            $"{connection.Create}:{connection.AutoDelete}:{connection.Durable}:{connection.Quorum}:{connection.Timeout}";
+
+        return key;
+    }
+
+    private static string GetCacheKeyFromMemoryCache(string cacheKey)
+    {
+        return RabbitMQConnectionCache.ToList().Where(e => e.Key.Split("_")[1] == cacheKey).Select(e => e.Key).FirstOrDefault();
     }
 }

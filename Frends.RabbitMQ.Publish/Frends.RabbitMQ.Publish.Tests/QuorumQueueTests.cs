@@ -77,7 +77,7 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection);
+        var result = RabbitMQ.Publish(input, connection, default);
         Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
@@ -113,7 +113,7 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection);
+        var result = RabbitMQ.Publish(input, connection, default);
         Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
@@ -148,7 +148,7 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection);
+        var result = RabbitMQ.Publish(input, connection, default);
         Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -183,7 +183,7 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection);
+        var result = RabbitMQ.Publish(input, connection, default);
         Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -214,7 +214,7 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection);
+        var result = RabbitMQ.Publish(input, connection, default);
         Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
@@ -250,7 +250,7 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection);
+        var result = RabbitMQ.Publish(input, connection, default);
         Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);

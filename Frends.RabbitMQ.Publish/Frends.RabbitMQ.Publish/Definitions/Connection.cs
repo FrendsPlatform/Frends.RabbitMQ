@@ -9,6 +9,13 @@ namespace Frends.RabbitMQ.Publish.Definitions;
 public class Connection
 {
     /// <summary>
+    /// Timeout setting for connection attempts. Value 0 indicates that the default value for the attempts should be used. Set value in seconds.
+    /// </summary>
+    /// <example>60</example>
+    [DefaultValue(60)]
+    public int Timeout { get; set; }
+
+    /// <summary>
     /// URI or hostname with username and password.
     /// </summary>
     /// <example>URI</example>
@@ -99,8 +106,9 @@ public class Connection
     public bool Quorum { get; set; }
 
     /// <summary>
-    /// Timeout setting for connection attempts. Value 0 indicates that the default value for the attempts should be used. Set value in seconds.
+    /// Time in seconds how long a connection will be left open for reuse after the execution.
     /// </summary>
     /// <example>60</example>
-    public int Timeout { get; set; }
+    [DefaultValue(30)]
+    public int ConnectionExpirationSeconds { get; set; }
 }
