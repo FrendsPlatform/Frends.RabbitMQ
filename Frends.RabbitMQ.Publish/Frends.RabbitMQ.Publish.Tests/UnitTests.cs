@@ -22,7 +22,7 @@ public class UnitTests
     private const string _testHost = "localhost";
     private const string _queue = "quorum";
     private const string _exchange = "exchange";
-    private static Header[] _headers = new Header[0];
+    private static Header[] _headers = Array.Empty<Header>();
 
     [TestInitialize]
     public void CreateExchangeAndQueue()
@@ -35,14 +35,14 @@ public class UnitTests
         channel.QueueBind(_queue, _exchange, routingKey: "");
 
         _headers = new Header[] {
-            new Header { Name = "X-AppId", Value = "application id" },
-            new Header { Name = "X-ClusterId", Value = "cluster id" },
-            new Header { Name = "Content-Type", Value = "content type" },
-            new Header { Name = "Content-Encoding", Value = "content encoding" },
-            new Header { Name = "X-CorrelationId", Value = "correlation id" },
-            new Header { Name = "X-Expiration", Value = "100" },
-            new Header { Name = "X-MessageId", Value = "message id" },
-            new Header { Name = "Custom-Header", Value = "custom header" }
+            new() { Name = "X-AppId", Value = "application id" },
+            new() { Name = "X-ClusterId", Value = "cluster id" },
+            new() { Name = "Content-Type", Value = "content type" },
+            new() { Name = "Content-Encoding", Value = "content encoding" },
+            new() { Name = "X-CorrelationId", Value = "correlation id" },
+            new() { Name = "X-Expiration", Value = "100" },
+            new() { Name = "X-MessageId", Value = "message id" },
+            new() { Name = "Custom-Header", Value = "custom header" }
         };
     }
 
@@ -70,7 +70,8 @@ public class UnitTests
             Durable = false,
             AutoDelete = false,
             AuthenticationMethod = AuthenticationMethod.Host,
-            ExchangeName = ""
+            ExchangeName = "",
+            Timeout = 30
         };
 
         Input input = new()
@@ -306,7 +307,7 @@ public class UnitTests
                     errorList.Add(ex.ToString());
                 }
             });
-            Assert.AreEqual(0, errors); 
+            Assert.AreEqual(0, errors);
         }
     }
 
@@ -387,5 +388,63 @@ public class UnitTests
             Assert.IsTrue(result.DataByteArray.SequenceEqual(Encoding.UTF8.GetBytes("test message")));
             Assert.AreEqual(0, result.Headers.Count);
         }
+    }
+
+    [TestMethod]
+    public void TestInvalidCredentials()
+    {
+        Connection connection = new()
+        {
+            Host = _testHost,
+            Username = "foo",
+            Password = "agent123",
+            RoutingKey = _queue,
+            QueueName = _queue,
+            Create = false,
+            Durable = false,
+            AutoDelete = false,
+            AuthenticationMethod = AuthenticationMethod.Host,
+            ExchangeName = "",
+            ConnectionExpirationSeconds = 0
+        };
+
+        Input input = new()
+        {
+            DataString = "test message",
+            InputType = InputType.String,
+            Headers = null
+        };
+
+        var ex = Assert.ThrowsException<Exception>(() => RabbitMQ.Publish(input, connection, default));
+        Assert.AreEqual("Operation failed: None of the specified endpoints were reachable after 5 retries.", ex.Message);
+    }
+
+    [TestMethod]
+    public void TestWithoutMessage()
+    {
+        Connection connection = new()
+        {
+            Host = _testHost,
+            Username = "agent",
+            Password = "agent123",
+            RoutingKey = _queue,
+            QueueName = _queue,
+            Create = false,
+            Durable = false,
+            AutoDelete = false,
+            AuthenticationMethod = AuthenticationMethod.Host,
+            ExchangeName = "",
+            ConnectionExpirationSeconds = 0
+        };
+
+        Input input = new()
+        {
+            DataString = "",
+            InputType = InputType.String,
+            Headers = null
+        };
+
+        var ex = Assert.ThrowsException<ArgumentException>(() => RabbitMQ.Publish(input, connection, default));
+        Assert.AreEqual("Publish: Message data is missing.", ex.Message);
     }
 }

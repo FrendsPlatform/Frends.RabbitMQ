@@ -20,7 +20,7 @@ public class QuorumQueueTests
     private const string _testHost = "localhost";
     private const string _queue = "quorum";
     private const string _exchange = "exchange";
-    private static Header[] _headers = new Header[0];
+    private static Header[] _headers = Array.Empty<Header>();
 
     [TestInitialize]
     public void CreateExchangeAndQueue()
@@ -29,20 +29,22 @@ public class QuorumQueueTests
         using var connection = factory.CreateConnection();
         using var channel = connection.CreateModel();
         channel.ExchangeDeclare(_exchange, type: "fanout", durable: false, autoDelete: false);
-        var args = new Dictionary<string, object>();
-        args["x-queue-type"] = "quorum";
+        var args = new Dictionary<string, object>
+        {
+            ["x-queue-type"] = "quorum"
+        };
         channel.QueueDeclare(_queue, durable: true, exclusive: false, autoDelete: false, arguments: args);
         channel.QueueBind(_queue, _exchange, routingKey: "");
 
         _headers = new Header[] {
-            new Header { Name = "X-AppId", Value = "application id" },
-            new Header { Name = "X-ClusterId", Value = "cluster id" },
-            new Header { Name = "Content-Type", Value = "content type" },
-            new Header { Name = "Content-Encoding", Value = "content encoding" },
-            new Header { Name = "X-CorrelationId", Value = "correlation id" },
-            new Header { Name = "X-Expiration", Value = "100" },
-            new Header { Name = "X-MessageId", Value = "message id" },
-            new Header { Name = "Custom-Header", Value = "custom header" }
+            new() { Name = "X-AppId", Value = "application id" },
+            new() { Name = "X-ClusterId", Value = "cluster id" },
+            new() { Name = "Content-Type", Value = "content type" },
+            new() { Name = "Content-Encoding", Value = "content encoding" },
+            new() { Name = "X-CorrelationId", Value = "correlation id" },
+            new() { Name = "X-Expiration", Value = "100" },
+            new() { Name = "X-MessageId", Value = "message id" },
+            new() { Name = "Custom-Header", Value = "custom header" }
         };
     }
 
@@ -66,7 +68,8 @@ public class QuorumQueueTests
             Durable = false,
             AutoDelete = false,
             AuthenticationMethod = AuthenticationMethod.Host,
-            ExchangeName = ""
+            ExchangeName = "",
+            Quorum = true
         };
 
         Input input = new()
@@ -102,7 +105,8 @@ public class QuorumQueueTests
             Durable = false,
             AutoDelete = false,
             AuthenticationMethod = AuthenticationMethod.Host,
-            ExchangeName = ""
+            ExchangeName = "",
+            Quorum = true
         };
 
         Input input = new()
@@ -137,7 +141,8 @@ public class QuorumQueueTests
             Durable = false,
             AutoDelete = false,
             AuthenticationMethod = AuthenticationMethod.Host,
-            ExchangeName = ""
+            ExchangeName = "",
+            Quorum = true
         };
 
         Input input = new()
@@ -172,7 +177,8 @@ public class QuorumQueueTests
             Durable = false,
             AutoDelete = false,
             AuthenticationMethod = AuthenticationMethod.Host,
-            ExchangeName = ""
+            ExchangeName = "",
+            Quorum = true
         };
 
         Input input = new()
@@ -204,6 +210,7 @@ public class QuorumQueueTests
             Durable = false,
             AutoDelete = false,
             AuthenticationMethod = AuthenticationMethod.URI,
+            Quorum = true
         };
 
         Input input = new()

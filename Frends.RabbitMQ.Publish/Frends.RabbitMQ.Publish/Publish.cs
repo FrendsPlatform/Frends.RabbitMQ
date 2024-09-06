@@ -7,6 +7,7 @@ using Frends.RabbitMQ.Publish.Definitions;
 using RabbitMQ.Client;
 using System.Runtime.Caching;
 using System.Threading;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Frends.RabbitMQ.Publish;
 
@@ -17,12 +18,12 @@ public class RabbitMQ
 {
     internal static readonly ObjectCache RabbitMQConnectionCache = MemoryCache.Default;
 
+    [ExcludeFromCodeCoverage]
     private static void RemovedCallback(CacheEntryRemovedArguments arg)
     {
         if (arg.RemovedReason != CacheEntryRemovedReason.Removed)
         {
-            var item = arg.CacheItem.Value as IDisposable;
-            if (item != null)
+            if (arg.CacheItem.Value is IDisposable item)
                 item.Dispose();
         }
     }
@@ -203,7 +204,7 @@ public class RabbitMQ
                 Thread.Sleep(TimeSpan.FromSeconds(2));
             }
         }
-        
+
         return null;
     }
 
@@ -219,7 +220,7 @@ public class RabbitMQ
                 if (RabbitMQConnectionCache.Get(GetCacheKeyFromMemoryCache(cacheKey)) is RabbitMQConnection conn && conn.AMQPConnection.IsOpen)
                     return conn.AMQPConnection;
             }
-            
+
         }
 
         var retryCount = 0;
@@ -237,7 +238,7 @@ public class RabbitMQ
                 // Log the exception here
                 // If the maximum number of retries has been reached, rethrow the exception
                 if (++retryCount >= 5)
-                    throw new Exception($"Getting Exception : {ex.Message} after {retryCount} retries.", ex);
+                    throw new Exception($"Operation failed: {ex.Message} after {retryCount} retries.", ex);
 
                 // Wait for a certain period of time before retrying
                 Thread.Sleep(TimeSpan.FromSeconds(2));
