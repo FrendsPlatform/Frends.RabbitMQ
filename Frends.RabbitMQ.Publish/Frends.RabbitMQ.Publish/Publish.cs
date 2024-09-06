@@ -201,7 +201,7 @@ public class RabbitMQ
                     throw new Exception($"Getting Exception : {ex.Message} after {retryCount} retries.", ex);
 
                 // Wait for a certain period of time before retrying
-                Thread.Sleep(TimeSpan.FromSeconds(2));
+                Thread.Sleep(TimeSpan.FromSeconds(Math.Pow(2, retryCount)));
             }
         }
 
