@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.0] - 2024-09-06
+### Fixed
+- Fixed issue with simultaneous calls by storing connections to Memory.Cache.
+
 ## [1.2.0] - 2023-03-14
 ### Fixed
 - Fixed issue with connections left open after task's execution by implementing IDisposable in Connectionhelper class.
