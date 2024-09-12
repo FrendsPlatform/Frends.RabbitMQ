@@ -262,6 +262,7 @@ public class RabbitMQ
         return key;
     }
 
+    [ExcludeFromCodeCoverage]
     private static string GetCacheKeyFromMemoryCache(string cacheKey)
     {
         try
