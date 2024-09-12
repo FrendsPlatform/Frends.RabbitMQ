@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.0] - 2024-09-12
+### Fixed
+- Fixed issue with MemoryCache error `Index was outside the bounds of the array` by adding try - catch block and changing how cache key is formatted.
+
 ## [1.3.0] - 2024-09-06
 ### Fixed
 - Fixed issue with simultaneous calls by storing connections to Memory.Cache.

@@ -230,7 +230,7 @@ public class RabbitMQ
             try
             {
                 var rabbitMQConnection = new RabbitMQConnection { AMQPConnection = factory.CreateConnection() };
-                RabbitMQConnectionCache.Add($"{Guid.NewGuid()}_{cacheKey}", rabbitMQConnection, new CacheItemPolicy() { RemovedCallback = RemovedCallback, SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds) });
+                RabbitMQConnectionCache.Add($"{cacheKey}_{Guid.NewGuid()}", rabbitMQConnection, new CacheItemPolicy() { RemovedCallback = RemovedCallback, SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds) });
                 return rabbitMQConnection.AMQPConnection;
             }
             catch (Exception ex)
@@ -248,6 +248,7 @@ public class RabbitMQ
         return null;
     }
 
+    [ExcludeFromCodeCoverage]
     private static string GetCacheKey(Connection connection)
     {
         var key = $"{connection.Host}:";
@@ -262,8 +263,13 @@ public class RabbitMQ
         return key;
     }
 
+    [ExcludeFromCodeCoverage]
     private static string GetCacheKeyFromMemoryCache(string cacheKey)
     {
-        return RabbitMQConnectionCache.ToList().Where(e => e.Key.Split("_")[1] == cacheKey).Select(e => e.Key).FirstOrDefault();
+        try
+        {
+            return RabbitMQConnectionCache.ToList().Where(e => e.Key.Split("_")[0] == cacheKey).Select(e => e.Key).FirstOrDefault();
+        }
+        catch { return null; }
     }
 }
