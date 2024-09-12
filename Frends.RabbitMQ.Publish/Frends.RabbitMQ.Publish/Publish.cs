@@ -264,6 +264,10 @@ public class RabbitMQ
 
     private static string GetCacheKeyFromMemoryCache(string cacheKey)
     {
-        return RabbitMQConnectionCache.ToList().Where(e => e.Key.Split("_")[1] == cacheKey).Select(e => e.Key).FirstOrDefault();
+        try
+        {
+            return RabbitMQConnectionCache.ToList().Where(e => e.Key.Split("_")[0] == cacheKey).Select(e => e.Key).FirstOrDefault();
+        }
+        catch { return null; }
     }
 }
