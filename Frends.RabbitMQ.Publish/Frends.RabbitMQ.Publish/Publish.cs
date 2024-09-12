@@ -230,7 +230,7 @@ public class RabbitMQ
             try
             {
                 var rabbitMQConnection = new RabbitMQConnection { AMQPConnection = factory.CreateConnection() };
-                RabbitMQConnectionCache.Add($"{Guid.NewGuid()}_{cacheKey}", rabbitMQConnection, new CacheItemPolicy() { RemovedCallback = RemovedCallback, SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds) });
+                RabbitMQConnectionCache.Add($"{cacheKey}_{Guid.NewGuid()}", rabbitMQConnection, new CacheItemPolicy() { RemovedCallback = RemovedCallback, SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds) });
                 return rabbitMQConnection.AMQPConnection;
             }
             catch (Exception ex)
@@ -248,6 +248,7 @@ public class RabbitMQ
         return null;
     }
 
+    [ExcludeFromCodeCoverage]
     private static string GetCacheKey(Connection connection)
     {
         var key = $"{connection.Host}:";
