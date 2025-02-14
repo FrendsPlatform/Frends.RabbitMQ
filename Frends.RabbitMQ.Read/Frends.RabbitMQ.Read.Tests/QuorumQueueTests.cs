@@ -3,6 +3,7 @@ using Frends.RabbitMQ.Read.Tests.Lib;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Read.Tests;
 
@@ -24,30 +25,30 @@ public class QuorumQueueTests
     private const string _pws = "agent123";
 
     [TestInitialize]
-    public void CreateExchangeAndQueue()
+    public async Task CreateExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
-        channel.ExchangeDeclare(_exchange, type: "fanout", durable: false, autoDelete: false);
-        var args = new Dictionary<string, object>();
+        using var connection = await factory.CreateConnectionAsync();
+        using var channel = await connection.CreateChannelAsync();
+        await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
+        var args = new Dictionary<string, object?>();
         args["x-queue-type"] = "quorum";
-        channel.QueueDeclare(_queue, durable: true, exclusive: false, autoDelete: false, arguments: args);
-        channel.QueueBind(_queue, _exchange, routingKey: "");
+        await channel.QueueDeclareAsync(_queue, durable: true, exclusive: false, autoDelete: false, arguments: args);
+        await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
     }
 
     [TestCleanup]
-    public void DeleteExchangeAndQueue()
+    public async Task DeleteExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
-        channel.QueueDelete(_queue, false, false);
-        channel.ExchangeDelete(_exchange, ifUnused: false);
+        using var connection = await factory.CreateConnectionAsync();
+        using var channel = await connection.CreateChannelAsync();
+        await channel.QueueDeleteAsync(_queue, false, false);
+        await channel.ExchangeDeleteAsync(_exchange, ifUnused: false);
     }
 
     [TestMethod]
-    public void TestReadMultipleMessagesWithHostQuorum()
+    public async Task TestReadMultipleMessagesWithHostQuorum()
     {
         Connection connection = new()
         {
@@ -63,8 +64,8 @@ public class QuorumQueueTests
             ReadMessageCount = 2,
         };
 
-        Publish(connection, 2);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 2);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
@@ -113,7 +114,7 @@ public class QuorumQueueTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public void TestReadSingleMessageWithURIQuorum()
+    public async Task TestReadSingleMessageWithURIQuorum()
     {
         Connection connection = new()
         {
@@ -127,8 +128,8 @@ public class QuorumQueueTests
             ReadMessageCount = 1,
         };
 
-        Publish(connection, 1);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -137,26 +138,28 @@ public class QuorumQueueTests
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
     }
 
-    public static void Publish(Connection connection, int messageCount)
+    public static async Task Publish(Connection connection, int messageCount)
     {
         ConnectionHelper connectionHelper = new();
         var message = "Test message";
 
-        Helper.OpenConnectionIfClosed(connectionHelper, connection);
+        await Helper.OpenConnectionIfClosed(connectionHelper, connection);
 
-        var args = new Dictionary<string, object>();
+        var args = new Dictionary<string, object?>();
         args.Add("x-queue-type", "quorum");
 
-        connectionHelper.AMQPModel.QueueDeclare(queue: connection.QueueName,
+        await connectionHelper.AMQPModel.QueueDeclareAsync(queue: connection.QueueName,
                                     durable: true,
                                     exclusive: false,
                                     autoDelete: false,
                                     arguments: args);
 
-        var basicProperties = connectionHelper.AMQPModel.CreateBasicProperties();
-        basicProperties.Persistent = false;
+        BasicProperties basicProperties = new()
+        {
+            Persistent = false
+        };
 
-        var headers = new Dictionary<string, object>() {
+        var headers = new Dictionary<string, object?>() {
                 { "X-AppId", "application id" },
                 { "X-ClusterId", "cluster id" },
                 { "Content-Type", "content type" },
@@ -170,8 +173,9 @@ public class QuorumQueueTests
         basicProperties.Headers = headers;
 
         for (var i = 0; i < messageCount; i++)
-            connectionHelper.AMQPModel.BasicPublish(exchange: _exchange,
+            await connectionHelper.AMQPModel.BasicPublishAsync(exchange: _exchange,
                 routingKey: connection.RoutingKey,
+                mandatory: true,
                 basicProperties: basicProperties,
                 body: Encoding.UTF8.GetBytes(message + " " + i));
     }

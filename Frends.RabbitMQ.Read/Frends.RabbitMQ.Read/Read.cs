@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Frends.RabbitMQ.Read.Definitions;
 using RabbitMQ.Client;
 
@@ -19,17 +20,17 @@ public class RabbitMQ
     /// </summary>
     /// <param name="connection">Connection parameters.</param>
     /// <returns>Object { bool Success, Object { string Data, Dictionary&lt;string, string&gt; Headers, uint MessagesCount, ulong DeliveryTag } MessagesBase64, Object { string Data, Dictionary&lt;string, string&gt; Headers, uint MessagesCount, ulong DeliveryTag } MessageUTF8 }</returns>
-    public static Result Read([PropertyTab] Connection connection)
+    public static async Task<Result> Read([PropertyTab] Connection connection)
     {
         using var connectionHelper = new ConnectionHelper();
         var baseList = new List<Message>();
         var stringList = new List<Message>();
 
-        OpenConnectionIfClosed(connectionHelper, connection);
+        await OpenConnectionIfClosed(connectionHelper, connection);
 
         while (connection.ReadMessageCount-- > 0)
         {
-            var rcvMessage = connectionHelper.AMQPModel.BasicGet(queue: connection.QueueName, autoAck: connection.AutoAck == ReadAckType.AutoAck);
+            var rcvMessage = await connectionHelper.AMQPModel.BasicGetAsync(queue: connection.QueueName, autoAck: connection.AutoAck == ReadAckType.AutoAck);
             if (rcvMessage != null)
             {
                 baseList.Add(new Message
@@ -78,13 +79,13 @@ public class RabbitMQ
             }
 
             foreach (var message in baseList)
-                AcknowledgeMessage(ackType, message.DeliveryTag, connectionHelper);
+                await AcknowledgeMessage(ackType, message.DeliveryTag, connectionHelper);
         }
 
         return new Result(true, baseList, stringList);
     }
 
-    private static bool AcknowledgeMessage(ManualAckType ackType, ulong deliveryTag, ConnectionHelper connectionHelper)
+    private static async Task<bool> AcknowledgeMessage(ManualAckType ackType, ulong deliveryTag, ConnectionHelper connectionHelper)
     {
         if (connectionHelper == null || connectionHelper.AMQPModel.IsClosed)
             throw new Exception("No connection to RabbitMQ");
@@ -92,30 +93,30 @@ public class RabbitMQ
         switch (ackType)
         {
             case ManualAckType.Ack:
-                connectionHelper.AMQPModel.BasicAck(deliveryTag, multiple: false);
+                await connectionHelper.AMQPModel.BasicAckAsync(deliveryTag, multiple: false);
                 break;
 
             case ManualAckType.Nack:
-                connectionHelper.AMQPModel.BasicNack(deliveryTag, multiple: false, requeue: false);
+                await connectionHelper.AMQPModel.BasicNackAsync(deliveryTag, multiple: false, requeue: false);
                 break;
 
             case ManualAckType.NackAndRequeue:
-                connectionHelper.AMQPModel.BasicNack(deliveryTag, multiple: false, requeue: true);
+                await connectionHelper.AMQPModel.BasicNackAsync(deliveryTag, multiple: false, requeue: true);
                 break;
 
             case ManualAckType.Reject:
-                connectionHelper.AMQPModel.BasicReject(deliveryTag, requeue: false);
+                await connectionHelper.AMQPModel.BasicRejectAsync(deliveryTag, requeue: false);
                 break;
 
             case ManualAckType.RejectAndRequeue:
-                connectionHelper.AMQPModel.BasicReject(deliveryTag, requeue: true);
+                await connectionHelper.AMQPModel.BasicRejectAsync(deliveryTag, requeue: true);
                 break;
         }
 
         return true;
     }
 
-    private static Dictionary<string, string> GetResponseHeaderDictionary(IBasicProperties basicProperties)
+    private static Dictionary<string, string> GetResponseHeaderDictionary(IReadOnlyBasicProperties basicProperties)
     {
         if (basicProperties == null) return null;
 
@@ -144,11 +145,11 @@ public class RabbitMQ
         return allHeaders;
     }
 
-    private static void OpenConnectionIfClosed(ConnectionHelper connectionHelper, Connection connection)
+    private static async Task OpenConnectionIfClosed(ConnectionHelper connectionHelper, Connection connection)
     {
         // Close connection if hostname has changed.
         if (IsConnectionHostNameChanged(connectionHelper, connection))
-            connectionHelper.AMQPModel.Close();
+            await connectionHelper.AMQPModel.CloseAsync();
 
         if (connectionHelper.AMQPConnection == null || connectionHelper.AMQPConnection.IsOpen == false)
         {
@@ -174,11 +175,11 @@ public class RabbitMQ
 
             if (connection.Timeout != 0) factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
 
-            connectionHelper.AMQPConnection = factory.CreateConnection();
+            connectionHelper.AMQPConnection = await factory.CreateConnectionAsync();
         }
 
         if (connectionHelper.AMQPModel == null || connectionHelper.AMQPModel.IsClosed)
-            connectionHelper.AMQPModel = connectionHelper.AMQPConnection.CreateModel();
+            connectionHelper.AMQPModel = await connectionHelper.AMQPConnection.CreateChannelAsync();
     }
 
     private static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Connection connection)

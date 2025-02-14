@@ -3,6 +3,7 @@ using Frends.RabbitMQ.Read.Tests.Lib;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Read.Tests;
 
@@ -24,31 +25,31 @@ public class UnitTests
     private const string _psw = "agent123";
 
     [TestInitialize]
-    public void CreateExchangeAndQueue()
+    public async Task CreateExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
-        channel.ExchangeDeclare(_exchange, type: "fanout", durable: false, autoDelete: false);
-        channel.QueueDeclare(_queue, durable: false, exclusive: false, autoDelete: false);
-        channel.QueueBind(_queue, _exchange, routingKey: "");
+        using var connection = await factory.CreateConnectionAsync();
+        using var channel = await connection.CreateChannelAsync();
+        await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
+        await channel.QueueDeclareAsync(_queue, durable: false, exclusive: false, autoDelete: false);
+        await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
     }
 
     [TestCleanup]
-    public void DeleteExchangeAndQueue()
+    public async Task DeleteExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
-        channel.QueueDelete(_queue, false, false);
-        channel.ExchangeDelete(_exchange, ifUnused: false);
+        using var connection = await factory.CreateConnectionAsync();
+        using var channel = await connection.CreateChannelAsync();
+        await channel.QueueDeleteAsync(_queue, false, false);
+        await channel.ExchangeDeleteAsync(_exchange, ifUnused: false);
     }
 
     /// <summary>
     /// Connect with hostname and read single message.
     /// </summary>
     [TestMethod]
-    public void TestReadSingleMessageWithHostAutoNack()
+    public async Task TestReadSingleMessageWithHostAutoNackAsync()
     {
         Connection connection = new()
         {
@@ -64,8 +65,8 @@ public class UnitTests
             ReadMessageCount = 1,
         };
 
-        Publish(connection, 1);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -112,7 +113,7 @@ public class UnitTests
     /// Connect with hostname and read multiple messages.
     /// </summary>
     [TestMethod]
-    public void TestReadMultipleMessagesWithHostAutoNack()
+    public async Task TestReadMultipleMessagesWithHostAutoNack()
     {
         Connection connection = new()
         {
@@ -128,8 +129,8 @@ public class UnitTests
             ReadMessageCount = 2,
         };
 
-        Publish(connection, 2);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 2);
+        var result = await RabbitMQ.Read(connection);
 
         var test1 = result.MessagesBase64.Count;
         var test2 = result.MessageUTF8.Count;
@@ -148,7 +149,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public void TestReadSingleMessageWithURIAutoNack()
+    public async Task TestReadSingleMessageWithURIAutoNack()
     {
         Connection connection = new()
         {
@@ -162,8 +163,8 @@ public class UnitTests
             ReadMessageCount = 1,
         };
 
-        Publish(connection, 1);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -173,7 +174,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestReadSingleMessageWithHostAutoNackAndRequeue()
+    public async Task TestReadSingleMessageWithHostAutoNackAndRequeue()
     {
         Connection connection = new()
         {
@@ -189,8 +190,8 @@ public class UnitTests
             ReadMessageCount = 1,
         };
 
-        Publish(connection, 1);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -203,7 +204,7 @@ public class UnitTests
     /// Connect with hostname and read multiple messages.
     /// </summary>
     [TestMethod]
-    public void TestReadMultipleMessagesWithHostAutoNackAndRequeue()
+    public async Task TestReadMultipleMessagesWithHostAutoNackAndRequeue()
     {
         Connection connection = new()
         {
@@ -219,8 +220,8 @@ public class UnitTests
             ReadMessageCount = 2,
         };
 
-        Publish(connection, 2);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 2);
+        var result = await RabbitMQ.Read(connection);
 
         var test1 = result.MessagesBase64.Count;
         var test2 = result.MessageUTF8.Count;
@@ -239,7 +240,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public void TestReadSingleMessageWithURIAutoNackAndRequeue()
+    public async Task TestReadSingleMessageWithURIAutoNackAndRequeue()
     {
         Connection connection = new()
         {
@@ -253,8 +254,8 @@ public class UnitTests
             ReadMessageCount = 1,
         };
 
-        Publish(connection, 1);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -264,7 +265,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestReadSingleMessageWithHostAutoReject()
+    public async Task TestReadSingleMessageWithHostAutoReject()
     {
         Connection connection = new()
         {
@@ -280,8 +281,8 @@ public class UnitTests
             ReadMessageCount = 1,
         };
 
-        Publish(connection, 1);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -294,7 +295,7 @@ public class UnitTests
     /// Connect with hostname and read multiple messages.
     /// </summary>
     [TestMethod]
-    public void TestReadMultipleMessagesWithHostAutoReject()
+    public async Task TestReadMultipleMessagesWithHostAutoReject()
     {
         Connection connection = new()
         {
@@ -310,8 +311,8 @@ public class UnitTests
             ReadMessageCount = 2,
         };
 
-        Publish(connection, 2);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 2);
+        var result = await RabbitMQ.Read(connection);
 
         var test1 = result.MessagesBase64.Count;
         var test2 = result.MessageUTF8.Count;
@@ -330,7 +331,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public void TestReadSingleMessageWithURIAutoReject()
+    public async Task TestReadSingleMessageWithURIAutoReject()
     {
         Connection connection = new()
         {
@@ -344,8 +345,8 @@ public class UnitTests
             ReadMessageCount = 1,
         };
 
-        Publish(connection, 1);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -355,7 +356,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestReadSingleMessageWithHostAutoRejectAndRequeue()
+    public async Task TestReadSingleMessageWithHostAutoRejectAndRequeue()
     {
         Connection connection = new()
         {
@@ -371,8 +372,8 @@ public class UnitTests
             ReadMessageCount = 1,
         };
 
-        Publish(connection, 1);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -385,7 +386,7 @@ public class UnitTests
     /// Connect with hostname and read multiple messages.
     /// </summary>
     [TestMethod]
-    public void TestReadMultipleMessagesWithHostAutoRejectAndRequeue()
+    public async Task TestReadMultipleMessagesWithHostAutoRejectAndRequeue()
     {
         Connection connection = new()
         {
@@ -401,8 +402,8 @@ public class UnitTests
             ReadMessageCount = 2,
         };
 
-        Publish(connection, 2);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 2);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
@@ -417,7 +418,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public void TestReadSingleMessageWithURIAutoRejectAndRequeue()
+    public async Task TestReadSingleMessageWithURIAutoRejectAndRequeue()
     {
         Connection connection = new()
         {
@@ -431,8 +432,8 @@ public class UnitTests
             ReadMessageCount = 1,
         };
 
-        Publish(connection, 1);
-        var result = RabbitMQ.Read(connection);
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -441,23 +442,25 @@ public class UnitTests
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
     }
 
-    public static void Publish(Connection connection, int messageCount, Dictionary<string, object>? args = null)
+    public static async Task Publish(Connection connection, int messageCount, Dictionary<string, object?>? args = null)
     {
         ConnectionHelper connectionHelper = new();
         var message = "Test message";
 
-        Helper.OpenConnectionIfClosed(connectionHelper, connection);
+        await Helper.OpenConnectionIfClosed(connectionHelper, connection);
 
-        connectionHelper.AMQPModel.QueueDeclare(queue: connection.QueueName,
+        await connectionHelper.AMQPModel.QueueDeclareAsync(queue: connection.QueueName,
                                     durable: false,
                                     exclusive: false,
                                     autoDelete: false,
                                     arguments: args);
 
-        var basicProperties = connectionHelper.AMQPModel.CreateBasicProperties();
-        basicProperties.Persistent = false;
+        BasicProperties basicProperties = new()
+        {
+            Persistent = false
+        };
 
-        var headers = new Dictionary<string, object>() {
+        var headers = new Dictionary<string, object?>() {
                 { "X-AppId", "application id" },
                 { "X-ClusterId", "cluster id" },
                 { "Content-Type", "content type" },
@@ -471,8 +474,9 @@ public class UnitTests
         basicProperties.Headers = headers;
 
         for (var i = 0; i < messageCount; i++)
-            connectionHelper.AMQPModel.BasicPublish(exchange: "exchange",
+            await connectionHelper.AMQPModel.BasicPublishAsync(exchange: "exchange",
                 routingKey: connection.RoutingKey,
+                mandatory: true,
                 basicProperties: basicProperties,
                 body: Encoding.UTF8.GetBytes(message + " " + i));
     }
