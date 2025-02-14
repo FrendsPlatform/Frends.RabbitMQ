@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0] - 2025-02-14
+### Fixed
+- Update target framework from .net6.0 to .net8.0
+- Update RabbitMQ.Client from 6.8.1 to 7.0.0
+- Update System.Runtime.Caching from 8.0.0 to 9.0.2
+- Resolve issues related to update
+
 ## [1.4.0] - 2024-09-12
 ### Fixed
 - Fixed issue with MemoryCache error `Index was outside the bounds of the array` by adding try - catch block and changing how cache key is formatted.

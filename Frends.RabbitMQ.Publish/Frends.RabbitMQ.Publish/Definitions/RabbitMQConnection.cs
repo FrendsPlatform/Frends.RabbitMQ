@@ -23,7 +23,7 @@ internal class RabbitMQConnection : IDisposable
     {
         if (disposing)
         {
-            AMQPConnection?.Close();
+            AMQPConnection?.CloseAsync().Wait();
             AMQPConnection?.Dispose();
         }
     }

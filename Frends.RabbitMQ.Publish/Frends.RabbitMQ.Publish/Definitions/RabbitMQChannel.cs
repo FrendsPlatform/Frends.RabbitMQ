@@ -11,7 +11,7 @@ internal class RabbitMQChannel : IDisposable
     /// <summary>
     /// AMQP model parameters.
     /// </summary>
-    public IModel AMQPModel { get; set; } = null;
+    public IChannel AMQPModel { get; set; } = null;
 
     public void Dispose()
     {
@@ -23,7 +23,7 @@ internal class RabbitMQChannel : IDisposable
     {
         if (disposing)
         {
-            AMQPModel?.Close();
+            AMQPModel?.CloseAsync().Wait();
             AMQPModel?.Dispose();
         }
     }

@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
 using System.Runtime.Caching;
 using System.Text;
+using System.Threading.Tasks;
 using static Frends.RabbitMQ.Publish.Tests.Lib.Helper;
 
 namespace Frends.RabbitMQ.Publish.Tests;
@@ -25,14 +26,14 @@ public class UnitTests
     private static Header[] _headers = Array.Empty<Header>();
 
     [TestInitialize]
-    public void CreateExchangeAndQueue()
+    public async Task CreateExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
-        channel.ExchangeDeclare(_exchange, type: "fanout", durable: false, autoDelete: false);
-        channel.QueueDeclare(_queue, durable: false, exclusive: false, autoDelete: false);
-        channel.QueueBind(_queue, _exchange, routingKey: "");
+        using var connection = await factory.CreateConnectionAsync();
+        using var channel = await connection.CreateChannelAsync();
+        await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
+        await channel.QueueDeclareAsync(_queue, durable: false, exclusive: false, autoDelete: false);
+        await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
 
         _headers = new Header[] {
             new() { Name = "X-AppId", Value = "application id" },
@@ -47,17 +48,17 @@ public class UnitTests
     }
 
     [TestCleanup]
-    public void DeleteExchangeAndQueue()
+    public async Task DeleteExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
-        channel.QueueDelete(_queue, false, false);
-        channel.ExchangeDelete(_exchange, ifUnused: false);
+        using var connection = await factory.CreateConnectionAsync();
+        using var channel = await connection.CreateChannelAsync();
+        await channel.QueueDeleteAsync(_queue, false, false);
+        await channel.ExchangeDeleteAsync(_exchange, ifUnused: false);
     }
 
     [TestMethod]
-    public void TestPublishAsString()
+    public async Task TestPublishAsString()
     {
         Connection connection = new()
         {
@@ -82,8 +83,8 @@ public class UnitTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
 
         Assert.IsTrue(!string.IsNullOrEmpty(readValues.Message));
         Assert.AreEqual("test message", readValues.Message);
@@ -125,7 +126,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestPublishAsByteArray()
+    public async Task TestPublishAsByteArray()
     {
         Connection connection = new()
         {
@@ -150,8 +151,8 @@ public class UnitTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -161,7 +162,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestPublishAsString_WithoutHeaders()
+    public async Task TestPublishAsString_WithoutHeadersAsync()
     {
         Connection connection = new()
         {
@@ -185,8 +186,8 @@ public class UnitTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
         Assert.AreEqual("String", result.DataFormat);
@@ -196,7 +197,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestPublishAsByteArray_WithoutHeaders()
+    public async Task TestPublishAsByteArray_WithoutHeadersAsync()
     {
         Connection connection = new()
         {
@@ -220,8 +221,8 @@ public class UnitTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
         Assert.AreEqual("ByteArray", result.DataFormat);
@@ -230,7 +231,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestURIConnection()
+    public async Task TestURIConnectionAsync()
     {
         Connection connection = new()
         {
@@ -252,8 +253,8 @@ public class UnitTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -293,12 +294,12 @@ public class UnitTests
             var errorList = new List<string>();
 
             Parallel.For(0, 50,
-            index =>
+            async index =>
             {
                 try
                 {
                     var readValues = new Helper.ReadValues();
-                    var result = RabbitMQ.Publish(input, connection, default);
+                    var result = await RabbitMQ.Publish(input, connection, default);
                     success++;
                 }
                 catch (Exception ex)
@@ -312,7 +313,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestMultipleRecurringCalls()
+    public async Task TestMultipleRecurringCallsAsync()
     {
         Connection connection = new()
         {
@@ -340,8 +341,8 @@ public class UnitTests
         for (var i = 0; i < 100; i++)
         {
             var readValues = new Helper.ReadValues();
-            var result = RabbitMQ.Publish(input, connection, default);
-            Helper.ReadMessage(readValues, connection);
+            var result = await RabbitMQ.Publish(input, connection, default);
+            await Helper.ReadMessage(readValues, connection);
             Assert.IsNotNull(readValues.Message);
             Assert.AreEqual("test message", readValues.Message);
             Assert.AreEqual("String", result.DataFormat);
@@ -352,7 +353,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestMultipleRecurringCallsWithConnectionExpirationSetToZero()
+    public async Task TestMultipleRecurringCallsWithConnectionExpirationSetToZeroAsync()
     {
         Connection connection = new()
         {
@@ -379,8 +380,8 @@ public class UnitTests
         for (var i = 0; i < 10; i++)
         {
             var readValues = new Helper.ReadValues();
-            var result = RabbitMQ.Publish(input, connection, default);
-            Helper.ReadMessage(readValues, connection);
+            var result = await RabbitMQ.Publish(input, connection, default);
+            await Helper.ReadMessage(readValues, connection);
             Assert.IsNotNull(readValues.Message);
             Assert.AreEqual("test message", readValues.Message);
             Assert.AreEqual("String", result.DataFormat);

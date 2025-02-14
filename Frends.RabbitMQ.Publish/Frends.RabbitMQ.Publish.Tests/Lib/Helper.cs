@@ -1,11 +1,12 @@
 ﻿using RabbitMQ.Client;
 using System.Text;
 using Frends.RabbitMQ.Publish.Definitions;
+using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Publish.Tests.Lib;
 internal class Helper
 {
-    internal static void ReadMessage(ReadValues readValues, Connection connection)
+    internal static async Task ReadMessage(ReadValues readValues, Connection connection)
     {
         var factory = new ConnectionFactory();
 
@@ -24,10 +25,10 @@ internal class Helper
                 break;
         }
 
-        IConnection _connection = factory.CreateConnection();
-        IModel _model = _connection.CreateModel();
+        IConnection _connection = await factory.CreateConnectionAsync();
+        IChannel _model = await _connection.CreateChannelAsync();
 
-        var rcvMessage = _model.BasicGet(connection.QueueName, true);
+        var rcvMessage = await _model.BasicGetAsync(connection.QueueName, true);
         if (rcvMessage != null)
         {
             var message = Encoding.UTF8.GetString(rcvMessage.Body.ToArray());
@@ -37,13 +38,13 @@ internal class Helper
             var data = new Dictionary<string, string>();
             if (rcvMessage.BasicProperties.IsHeadersPresent())
             {
-                foreach (var header in rcvMessage.BasicProperties.Headers.ToList())
+                foreach (var header in rcvMessage.BasicProperties.Headers!.ToList())
                 {
-                    if (header.Value.GetType() == typeof(byte[]))
+                    if (header.Value?.GetType() == typeof(byte[]))
                         data[header.Key] = Encoding.UTF8.GetString((byte[])header.Value);
                     else
                     {
-                        string? value = header.Value.ToString();
+                        string? value = header.Value?.ToString();
                         if (!string.IsNullOrWhiteSpace(value))
                             data[header.Key] = value;
                         else
@@ -55,14 +56,14 @@ internal class Helper
         }
     }
 
-    internal static void DeleteQuorumQueue(string uri, string queue, string? exchange = null)
+    internal static async Task DeleteQuorumQueue(string uri, string queue, string? exchange = null)
     {
         var factory = new ConnectionFactory { Uri = new Uri(uri) };
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
-        channel.QueueDelete(queue, false, false);
+        using var connection = await factory.CreateConnectionAsync();
+        using var channel = await connection.CreateChannelAsync();
+        await channel.QueueDeleteAsync(queue, false, false);
         if (exchange != null)
-            channel.ExchangeDelete(exchange, ifUnused: false);
+            await channel.ExchangeDeleteAsync(exchange, ifUnused: false);
     }
 
     internal class ReadValues
