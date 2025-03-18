@@ -2,7 +2,7 @@
 
 ## [1.0.3] - 2025-02-14
 ### Fixed
-- Update RabbitMQ.Client from 6.4.0 to 7.0.0
+- Update RabbitMQ.Client from 6.4.0 to 7.1.2
 
 ## [1.0.2] - 2023-03-14
 ### Fixed
