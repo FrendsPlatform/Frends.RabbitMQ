@@ -392,7 +392,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestInvalidCredentials()
+    public async Task TestInvalidCredentials()
     {
         Connection connection = new()
         {
@@ -416,12 +416,12 @@ public class UnitTests
             Headers = null
         };
 
-        var ex = Assert.ThrowsException<Exception>(() => RabbitMQ.Publish(input, connection, default));
+        var ex = await Assert.ThrowsAsync<Exception>(() => RabbitMQ.Publish(input, connection, default));
         Assert.AreEqual("Operation failed: None of the specified endpoints were reachable after 5 retries.", ex.Message);
     }
 
     [TestMethod]
-    public void TestWithoutMessage()
+    public async Task TestWithoutMessage()
     {
         Connection connection = new()
         {
@@ -445,7 +445,7 @@ public class UnitTests
             Headers = null
         };
 
-        var ex = Assert.ThrowsException<ArgumentException>(() => RabbitMQ.Publish(input, connection, default));
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => RabbitMQ.Publish(input, connection, default));
         Assert.AreEqual("Publish: Message data is missing.", ex.Message);
     }
 }
