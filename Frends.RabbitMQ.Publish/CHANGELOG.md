@@ -4,7 +4,6 @@
 ### Fixed
 - Update RabbitMQ.Client from 6.8.1 to 7.0.0
 - Update System.Runtime.Caching from 8.0.0 to 9.0.2
-- Resolve issues related to update
 
 ## [1.4.0] - 2024-09-12
 ### Fixed
