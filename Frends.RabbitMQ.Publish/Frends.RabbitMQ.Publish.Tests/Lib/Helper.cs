@@ -25,8 +25,8 @@ internal class Helper
                 break;
         }
 
-        IConnection _connection = await factory.CreateConnectionAsync();
-        IChannel _model = await _connection.CreateChannelAsync();
+        await using IConnection _connection = await factory.CreateConnectionAsync();
+        await using IChannel _model = await _connection.CreateChannelAsync();
 
         var rcvMessage = await _model.BasicGetAsync(connection.QueueName, true);
         if (rcvMessage != null)
@@ -59,8 +59,8 @@ internal class Helper
     internal static async Task DeleteQuorumQueue(string uri, string queue, string? exchange = null)
     {
         var factory = new ConnectionFactory { Uri = new Uri(uri) };
-        using var connection = await factory.CreateConnectionAsync();
-        using var channel = await connection.CreateChannelAsync();
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
         await channel.QueueDeleteAsync(queue, false, false);
         if (exchange != null)
             await channel.ExchangeDeleteAsync(exchange, ifUnused: false);

@@ -27,8 +27,8 @@ public class QuorumQueueTests
     public async Task CreateExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = await factory.CreateConnectionAsync();
-        using var channel = await connection.CreateChannelAsync();
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
         await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
         var args = new Dictionary<string, object?>
         {

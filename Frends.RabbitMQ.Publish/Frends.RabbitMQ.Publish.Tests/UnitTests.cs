@@ -29,8 +29,8 @@ public class UnitTests
     public async Task CreateExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = await factory.CreateConnectionAsync();
-        using var channel = await connection.CreateChannelAsync();
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
         await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
         await channel.QueueDeclareAsync(_queue, durable: false, exclusive: false, autoDelete: false);
         await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
@@ -51,8 +51,8 @@ public class UnitTests
     public async Task DeleteExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = await factory.CreateConnectionAsync();
-        using var channel = await connection.CreateChannelAsync();
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
         await channel.QueueDeleteAsync(_queue, false, false);
         await channel.ExchangeDeleteAsync(_exchange, ifUnused: false);
     }
