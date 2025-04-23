@@ -3,6 +3,7 @@ using Frends.RabbitMQ.Publish.Tests.Lib;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Publish.Tests;
 
@@ -23,18 +24,18 @@ public class QuorumQueueTests
     private static Header[] _headers = Array.Empty<Header>();
 
     [TestInitialize]
-    public void CreateExchangeAndQueue()
+    public async Task CreateExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
-        using var connection = factory.CreateConnection();
-        using var channel = connection.CreateModel();
-        channel.ExchangeDeclare(_exchange, type: "fanout", durable: false, autoDelete: false);
-        var args = new Dictionary<string, object>
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
+        await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
+        var args = new Dictionary<string, object?>
         {
             ["x-queue-type"] = "quorum"
         };
-        channel.QueueDeclare(_queue, durable: true, exclusive: false, autoDelete: false, arguments: args);
-        channel.QueueBind(_queue, _exchange, routingKey: "");
+        await channel.QueueDeclareAsync(_queue, durable: true, exclusive: false, autoDelete: false, arguments: args);
+        await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
 
         _headers = new Header[] {
             new() { Name = "X-AppId", Value = "application id" },
@@ -49,13 +50,13 @@ public class QuorumQueueTests
     }
 
     [TestCleanup]
-    public void DeleteExchangeAndQueue()
+    public async Task DeleteExchangeAndQueue()
     {
-        Helper.DeleteQuorumQueue(_testUri, _queue, _exchange);
+        await Helper.DeleteQuorumQueue(_testUri, _queue, _exchange);
     }
 
     [TestMethod]
-    public void TestPublishAsString()
+    public async Task TestPublishAsString()
     {
         Connection connection = new()
         {
@@ -80,8 +81,8 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -92,7 +93,7 @@ public class QuorumQueueTests
     }
 
     [TestMethod]
-    public void TestPublishAsByteArray()
+    public async Task TestPublishAsByteArray()
     {
         Connection connection = new()
         {
@@ -117,8 +118,8 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -128,7 +129,7 @@ public class QuorumQueueTests
     }
 
     [TestMethod]
-    public void TestPublishAsString_WithoutHeaders()
+    public async Task TestPublishAsString_WithoutHeaders()
     {
         Connection connection = new()
         {
@@ -153,8 +154,8 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
         Assert.AreEqual("String", result.DataFormat);
@@ -164,7 +165,7 @@ public class QuorumQueueTests
     }
 
     [TestMethod]
-    public void TestPublishAsByteArray_WithoutHeaders()
+    public async Task TestPublishAsByteArray_WithoutHeaders()
     {
         Connection connection = new()
         {
@@ -189,8 +190,8 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
         Assert.AreEqual("ByteArray", result.DataFormat);
@@ -199,7 +200,7 @@ public class QuorumQueueTests
     }
 
     [TestMethod]
-    public void TestURIConnection()
+    public async Task TestURIConnection()
     {
         Connection connection = new()
         {
@@ -221,8 +222,8 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -232,9 +233,9 @@ public class QuorumQueueTests
     }
 
     [TestMethod]
-    public void TestURIConnectionWithCreateQueue()
+    public async Task TestURIConnectionWithCreateQueue()
     {
-        Helper.DeleteQuorumQueue(_testUri, _queue);
+        await Helper.DeleteQuorumQueue(_testUri, _queue);
         var newQueue = "quorum2";
         Connection connection = new()
         {
@@ -257,8 +258,8 @@ public class QuorumQueueTests
         };
 
         var readValues = new Helper.ReadValues();
-        var result = RabbitMQ.Publish(input, connection, default);
-        Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -266,6 +267,6 @@ public class QuorumQueueTests
         Assert.AreEqual("test message", result.DataString);
         Assert.IsTrue(result.DataByteArray.SequenceEqual(Encoding.UTF8.GetBytes("test message")));
 
-        Helper.DeleteQuorumQueue(_testUri, newQueue, _exchange);
+        await Helper.DeleteQuorumQueue(_testUri, newQueue, _exchange);
     }
 }

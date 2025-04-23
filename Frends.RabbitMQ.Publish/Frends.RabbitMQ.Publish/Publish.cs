@@ -8,6 +8,7 @@ using RabbitMQ.Client;
 using System.Runtime.Caching;
 using System.Threading;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Publish;
 
@@ -36,7 +37,7 @@ public class RabbitMQ
     /// <param name="connection">Connection parameters.</param>
     /// <param name="cancellationToken">CancellationToken given by Frends to terminate the Task.</param>
     /// <returns>Object { string DataFormat, string DataString, byte[] DataByteArray, Dictionary&lt;string, string&gt; Headers }</returns>
-    public static Result Publish([PropertyTab] Input input, [PropertyTab] Connection connection, CancellationToken cancellationToken)
+    public static async Task<Result> Publish([PropertyTab] Input input, [PropertyTab] Connection connection, CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory();
 
@@ -61,7 +62,7 @@ public class RabbitMQ
         if (connection.Timeout != 0)
             factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
 
-        var channel = GetRabbitMQChannel(connection, factory, cancellationToken);
+        var channel = await GetRabbitMQChannel(connection, factory, cancellationToken);
 
         var dataType = input.InputType.Equals(InputType.ByteArray) ? "ByteArray" : "String";
         var data = input.InputType.Equals(InputType.ByteArray) ? input.DataByteArray : Encoding.UTF8.GetBytes(input.DataString);
@@ -77,23 +78,27 @@ public class RabbitMQ
                 { "x-queue-type", "quorum" }
             };
 
-            channel.QueueDeclare(queue: connection.QueueName,
+            await channel.QueueDeclareAsync(queue: connection.QueueName,
                 durable: connection.Durable,
                 exclusive: false,
                 autoDelete: connection.AutoDelete,
-                arguments: connection.Quorum ? args : null);
+                arguments: connection.Quorum ? args : null,
+                cancellationToken: cancellationToken);
 
             if (!string.IsNullOrEmpty(connection.ExchangeName))
             {
-                channel.QueueBind(queue: connection.QueueName,
+                await channel.QueueBindAsync(queue: connection.QueueName,
                     exchange: connection.ExchangeName,
                     routingKey: connection.RoutingKey,
-                    arguments: null);
+                    arguments: null,
+                    cancellationToken: cancellationToken);
             }
         }
 
-        var basicProperties = channel.CreateBasicProperties();
-        basicProperties.Persistent = connection.Durable;
+        BasicProperties basicProperties = new()
+        {
+            Persistent = connection.Durable
+        };
         AddHeadersToBasicProperties(basicProperties, input.Headers);
 
         var headers = new Dictionary<string, string>();
@@ -102,10 +107,12 @@ public class RabbitMQ
             foreach (var head in basicProperties.Headers)
                 headers.Add(head.Key.ToString(), head.Value.ToString());
 
-        channel.BasicPublish(exchange: connection.ExchangeName,
+        await channel.BasicPublishAsync(exchange: connection.ExchangeName,
             routingKey: connection.RoutingKey,
+            mandatory: true,
             basicProperties: basicProperties,
-            body: data);
+            body: data,
+            cancellationToken: cancellationToken);
 
         return new Result(dataType,
             !string.IsNullOrEmpty(input.DataString) ? input.DataString : Encoding.UTF8.GetString(input.DataByteArray),
@@ -175,9 +182,9 @@ public class RabbitMQ
             basicProperties.Headers = messageHeaders;
     }
 
-    private static IModel GetRabbitMQChannel(Connection connection, ConnectionFactory factory, CancellationToken cancellationToken)
+    private static async Task<IChannel> GetRabbitMQChannel(Connection connection, ConnectionFactory factory, CancellationToken cancellationToken)
     {
-        var conn = GetRabbitMQConnection(connection, factory, cancellationToken);
+        var conn = await GetRabbitMQConnection(connection, factory, cancellationToken);
 
         var retryCount = 0;
         while (retryCount < 5)
@@ -185,14 +192,14 @@ public class RabbitMQ
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                var channel = new RabbitMQChannel() { AMQPModel = conn.CreateModel() };
+                var channel = new RabbitMQChannel() { AMQPModel = await conn.CreateChannelAsync() };
                 return channel.AMQPModel;
             }
             catch (Exception ex)
             {
                 if (ex.Message.Contains("The connection cannot support any more channels."))
                 {
-                    conn = GetRabbitMQConnection(connection, factory, cancellationToken, true);
+                    conn = await GetRabbitMQConnection(connection, factory, cancellationToken, true);
                     continue;
                 }
                 // Log the exception here
@@ -208,7 +215,7 @@ public class RabbitMQ
         return null;
     }
 
-    private static IConnection GetRabbitMQConnection(Connection connection, ConnectionFactory factory, CancellationToken cancellationToken, bool forceCreate = false)
+    private static async Task<IConnection> GetRabbitMQConnection(Connection connection, ConnectionFactory factory, CancellationToken cancellationToken, bool forceCreate = false)
     {
         var cacheKey = GetCacheKey(connection);
 
@@ -229,7 +236,7 @@ public class RabbitMQ
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                var rabbitMQConnection = new RabbitMQConnection { AMQPConnection = factory.CreateConnection() };
+                var rabbitMQConnection = new RabbitMQConnection { AMQPConnection = await factory.CreateConnectionAsync() };
                 RabbitMQConnectionCache.Add($"{cacheKey}_{Guid.NewGuid()}", rabbitMQConnection, new CacheItemPolicy() { RemovedCallback = RemovedCallback, SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds) });
                 return rabbitMQConnection.AMQPConnection;
             }

@@ -16,7 +16,7 @@ internal class ConnectionHelper : IDisposable
     /// <summary>
     /// AMQP model parameters.
     /// </summary>
-    public IModel AMQPModel { get; set; } = null;
+    public IChannel AMQPModel { get; set; } = null;
 
     public void Dispose()
     {
@@ -28,9 +28,9 @@ internal class ConnectionHelper : IDisposable
     {
         if (disposing)
         {
-            AMQPModel?.Close();
+            AMQPModel?.CloseAsync().Wait();
             AMQPModel?.Dispose();
-            AMQPConnection?.Close();
+            AMQPConnection?.CloseAsync().Wait();
             AMQPConnection?.Dispose();
         }
     }

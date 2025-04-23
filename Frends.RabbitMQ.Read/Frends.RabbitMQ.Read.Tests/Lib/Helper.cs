@@ -1,13 +1,14 @@
-﻿using Frends.RabbitMQ.Read.Definitions;
+﻿using System.Threading.Tasks;
+using Frends.RabbitMQ.Read.Definitions;
 using RabbitMQ.Client;
 
 namespace Frends.RabbitMQ.Read.Tests.Lib;
 internal class Helper
 {
-    internal static void OpenConnectionIfClosed(ConnectionHelper connectionHelper, Connection connection)
+    internal static async Task OpenConnectionIfClosed(ConnectionHelper connectionHelper, Connection connection)
     {
         if (IsConnectionHostNameChanged(connectionHelper, connection))
-            connectionHelper.AMQPModel.Close();
+            await connectionHelper.AMQPModel.CloseAsync();
 
         if (connectionHelper.AMQPConnection == null || connectionHelper.AMQPConnection.IsOpen == false)
         {
@@ -33,11 +34,11 @@ internal class Helper
 
             if (connection.Timeout != 0) factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
 
-            connectionHelper.AMQPConnection = factory.CreateConnection();
+            connectionHelper.AMQPConnection = await factory.CreateConnectionAsync();
         }
 
         if (connectionHelper.AMQPModel == null || connectionHelper.AMQPModel.IsClosed)
-            connectionHelper.AMQPModel = connectionHelper.AMQPConnection.CreateModel();
+            connectionHelper.AMQPModel = await connectionHelper.AMQPConnection.CreateChannelAsync();
     }
 
     internal static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Connection connection)

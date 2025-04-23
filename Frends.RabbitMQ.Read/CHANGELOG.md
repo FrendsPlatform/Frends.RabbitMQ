@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.0] - 2025-02-14
+### Fixed
+- Update RabbitMQ.Client from 6.4.0 to 7.1.2
+
 ## [1.0.2] - 2023-03-14
 ### Fixed
 - Fixed issue with connections and channels were left open by implementinf IDisposable class in ConnectionHelper class.

@@ -1,32 +1,32 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-	<TargetFrameworks>net6.0</TargetFrameworks>
-	<Version>1.0.2</Version>
-	<Authors>Frends</Authors>
-	<Copyright>Frends</Copyright>
-	<Company>Frends</Company>
-	<Product>Frends</Product>
-	<PackageTags>Frends</PackageTags>
-	<PackageLicenseExpression>MIT</PackageLicenseExpression>
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<Description>Read message from RabbitMQ queue.</Description>
-	<PackageProjectUrl>https://frends.com/</PackageProjectUrl>
-	<RepositoryUrl>https://github.com/FrendsPlatform/Frends.RabbitMQ</RepositoryUrl>
-  </PropertyGroup>
-	
-  <ItemGroup>
-	  <None Include="FrendsTaskMetadata.json" Pack="true" PackagePath="/">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </None>
-  </ItemGroup>
+	<PropertyGroup>
+		<TargetFrameworks>net6.0</TargetFrameworks>
+		<Version>1.1.0</Version>
+		<Authors>Frends</Authors>
+		<Copyright>Frends</Copyright>
+		<Company>Frends</Company>
+		<Product>Frends</Product>
+		<PackageTags>Frends</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Description>Read message from RabbitMQ queue.</Description>
+		<PackageProjectUrl>https://frends.com/</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/FrendsPlatform/Frends.RabbitMQ</RepositoryUrl>
+	</PropertyGroup>
 
-<ItemGroup>
-	<InternalsVisibleTo Include="Frends.RabbitMQ.Read.Tests" />
-</ItemGroup>
-	
-  <ItemGroup>
-    <PackageReference Include="RabbitMQ.Client" Version="6.4.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="FrendsTaskMetadata.json" Pack="true" PackagePath="/">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="Frends.RabbitMQ.Read.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+	</ItemGroup>
 
 </Project>
