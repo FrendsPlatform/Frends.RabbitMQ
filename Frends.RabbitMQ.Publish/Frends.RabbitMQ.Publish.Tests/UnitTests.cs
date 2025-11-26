@@ -448,4 +448,60 @@ public class UnitTests
         var ex = await Assert.ThrowsAsync<ArgumentException>(() => RabbitMQ.Publish(input, connection, default));
         Assert.AreEqual("Publish: Message data is missing.", ex.Message);
     }
+
+    [TestMethod]
+    public async Task TestConnectionCacheReusesConnectionsInLoop()
+    {
+        // Clear any existing cache entries
+        var cache = MemoryCache.Default;
+        var cacheKeys = cache.ToList().Select(e => e.Key).ToList();
+        foreach (var key in cacheKeys)
+        {
+            cache.Remove(key);
+        }
+
+        Connection connection = new()
+        {
+            Host = _testHost,
+            Username = "agent",
+            Password = "agent123",
+            RoutingKey = _queue,
+            QueueName = _queue,
+            Create = false,
+            Durable = false,
+            AutoDelete = false,
+            AuthenticationMethod = AuthenticationMethod.Host,
+            ExchangeName = "",
+            Timeout = 30,
+            ConnectionExpirationSeconds = 60
+        };
+
+        Input input = new()
+        {
+            DataString = "test message",
+            InputType = InputType.String,
+            Headers = null
+        };
+
+        // Run multiple publish calls in a loop - this should reuse the same connection
+        const int iterations = 25;
+        for (var i = 0; i < iterations; i++)
+        {
+            var readValues = new Helper.ReadValues();
+            var result = await RabbitMQ.Publish(input, connection, default);
+            await Helper.ReadMessage(readValues, connection);
+            Assert.AreEqual("test message", readValues.Message);
+        }
+
+        // Get cache entries that match our connection pattern
+        var connectionCacheKey = $"{_testHost}:agent:agent123:0:{_queue}::";
+        var matchingCacheEntries = cache.ToList()
+            .Where(e => e.Key.StartsWith(connectionCacheKey))
+            .ToList();
+
+        // Assert that only 1 connection was created, not 25
+        Assert.AreEqual(1, matchingCacheEntries.Count, 
+            $"Expected 1 cached connection, but found {matchingCacheEntries.Count}. " +
+            $"Connection caching is not working properly - each iteration created a new connection.");
+    }
 }

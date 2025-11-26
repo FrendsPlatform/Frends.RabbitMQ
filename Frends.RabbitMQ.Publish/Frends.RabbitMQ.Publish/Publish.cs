@@ -221,13 +221,9 @@ public class RabbitMQ
 
         if (!forceCreate)
         {
-            var key = GetCacheKeyFromMemoryCache(cacheKey);
-            if (key != null)
-            {
-                if (RabbitMQConnectionCache.Get(GetCacheKeyFromMemoryCache(cacheKey)) is RabbitMQConnection conn && conn.AMQPConnection.IsOpen)
-                    return conn.AMQPConnection;
-            }
-
+            var existingConn = GetOpenConnectionFromCache(cacheKey);
+            if (existingConn != null)
+                return existingConn;
         }
 
         var retryCount = 0;
@@ -237,7 +233,8 @@ public class RabbitMQ
             try
             {
                 var rabbitMQConnection = new RabbitMQConnection { AMQPConnection = await factory.CreateConnectionAsync() };
-                RabbitMQConnectionCache.Add($"{cacheKey}_{Guid.NewGuid()}", rabbitMQConnection, new CacheItemPolicy() { RemovedCallback = RemovedCallback, SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds) });
+                var uniqueCacheKey = $"{cacheKey}_{Guid.NewGuid()}";
+                RabbitMQConnectionCache.Add(uniqueCacheKey, rabbitMQConnection, new CacheItemPolicy() { RemovedCallback = RemovedCallback, SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds) });
                 return rabbitMQConnection.AMQPConnection;
             }
             catch (Exception ex)
@@ -256,6 +253,26 @@ public class RabbitMQ
     }
 
     [ExcludeFromCodeCoverage]
+    private static IConnection GetOpenConnectionFromCache(string cacheKey)
+    {
+        try
+        {
+            // Find all cache entries that match the base cache key
+            var matchingEntries = RabbitMQConnectionCache.ToList()
+                .Where(e => e.Key.StartsWith(cacheKey + "_"))
+                .ToList();
+
+            foreach (var entry in matchingEntries)
+            {
+                if (entry.Value is RabbitMQConnection conn && conn.AMQPConnection.IsOpen)
+                    return conn.AMQPConnection;
+            }
+            return null;
+        }
+        catch { return null; }
+    }
+
+    [ExcludeFromCodeCoverage]
     private static string GetCacheKey(Connection connection)
     {
         var key = $"{connection.Host}:";
@@ -270,13 +287,4 @@ public class RabbitMQ
         return key;
     }
 
-    [ExcludeFromCodeCoverage]
-    private static string GetCacheKeyFromMemoryCache(string cacheKey)
-    {
-        try
-        {
-            return RabbitMQConnectionCache.ToList().Where(e => e.Key.Split("_")[0] == cacheKey).Select(e => e.Key).FirstOrDefault();
-        }
-        catch { return null; }
-    }
 }
