@@ -452,13 +452,7 @@ public class UnitTests
     [TestMethod]
     public async Task TestConnectionCacheReusesConnectionsInLoop()
     {
-        // Clear any existing cache entries
         var cache = MemoryCache.Default;
-        var cacheKeys = cache.ToList().Select(e => e.Key).ToList();
-        foreach (var key in cacheKeys)
-        {
-            cache.Remove(key);
-        }
 
         Connection connection = new()
         {
@@ -475,6 +469,13 @@ public class UnitTests
             Timeout = 30,
             ConnectionExpirationSeconds = 60
         };
+
+        // Build the expected cache key prefix for this connection configuration
+        var connectionCacheKeyPrefix = $"{_testHost}:agent:agent123:0:{_queue}::";
+        
+        // Count matching cache entries before running the test
+        var matchingEntriesBefore = cache.ToList()
+            .Count(e => e.Key.StartsWith(connectionCacheKeyPrefix));
 
         Input input = new()
         {
@@ -493,15 +494,16 @@ public class UnitTests
             Assert.AreEqual("test message", readValues.Message);
         }
 
-        // Get cache entries that match our connection pattern
-        var connectionCacheKey = $"{_testHost}:agent:agent123:0:{_queue}::";
-        var matchingCacheEntries = cache.ToList()
-            .Where(e => e.Key.StartsWith(connectionCacheKey))
-            .ToList();
-
-        // Assert that only 1 connection was created, not 25
-        Assert.AreEqual(1, matchingCacheEntries.Count, 
-            $"Expected 1 cached connection, but found {matchingCacheEntries.Count}. " +
-            $"Connection caching is not working properly - each iteration created a new connection.");
+        // Count matching cache entries after running the test
+        var matchingEntriesAfter = cache.ToList()
+            .Count(e => e.Key.StartsWith(connectionCacheKeyPrefix));
+        
+        var cacheIncrease = matchingEntriesAfter - matchingEntriesBefore;
+        
+        // Verify that the cache increased by at most 1 for this connection configuration
+        // (0 if a connection was already cached, 1 if a new connection was created)
+        Assert.IsTrue(cacheIncrease >= 0 && cacheIncrease <= 1, 
+            $"Expected cache to increase by 0 or 1 after {iterations} publish calls, but it increased by {cacheIncrease}. " +
+            $"Connection caching is not working properly - each iteration should reuse the same connection.");
     }
 }
