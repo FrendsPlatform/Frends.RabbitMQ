@@ -175,10 +175,10 @@ public class QuorumQueueTests : TestBase
             Quorum = true
         };
 
-        Input input = new()
-        {
-            DataByteArray = Encoding.UTF8.GetBytes("test message"), InputType = InputType.ByteArray, Headers = null
-        };
+        var input = new Input();
+        input.DataByteArray = Encoding.UTF8.GetBytes("test message");
+        input.InputType = InputType.ByteArray;
+        input.Headers = null;
 
         var readValues = new Helper.ReadValues();
         var result = await RabbitMQ.Publish(input, connection, default);
