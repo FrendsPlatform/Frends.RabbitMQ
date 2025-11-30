@@ -2,7 +2,7 @@ name: Publish build test
 
 on:
   push:
-    branches-ignore: 
+    branches-ignore:
       - main
     paths:
       - 'Frends.RabbitMQ.Publish/**'
@@ -13,7 +13,6 @@ jobs:
     uses: FrendsPlatform/FrendsTasks/.github/workflows/linux_build_test.yml@main
     with:
       workdir: Frends.RabbitMQ.Publish
-      prebuild_command: docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123  rabbitmq:3.7-management
     secrets:
       badge_service_api_key: ${{ secrets.BADGE_SERVICE_API_KEY }}
       test_feed_api_key: ${{ secrets.TASKS_TEST_FEED_API_KEY }}

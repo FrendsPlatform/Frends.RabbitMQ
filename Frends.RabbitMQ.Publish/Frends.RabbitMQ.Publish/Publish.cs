@@ -15,17 +15,21 @@ namespace Frends.RabbitMQ.Publish;
 /// <summary>
 /// RabbitMQ publish task.
 /// </summary>
-public class RabbitMQ
+public static class RabbitMQ
 {
-    internal static readonly ObjectCache RabbitMQConnectionCache = MemoryCache.Default;
+    private static readonly ObjectCache RabbitMqConnectionCache = MemoryCache.Default;
+
 
     [ExcludeFromCodeCoverage]
     private static void RemovedCallback(CacheEntryRemovedArguments arg)
     {
-        if (arg.RemovedReason != CacheEntryRemovedReason.Removed)
+        if (arg.CacheItem.Value is IConnection conn)
         {
-            if (arg.CacheItem.Value is IDisposable item)
-                item.Dispose();
+            _ = Task.Run(async () =>
+            {
+                await conn.CloseAsync();
+                conn.Dispose();
+            });
         }
     }
 
@@ -37,7 +41,8 @@ public class RabbitMQ
     /// <param name="connection">Connection parameters.</param>
     /// <param name="cancellationToken">CancellationToken given by Frends to terminate the Task.</param>
     /// <returns>Object { string DataFormat, string DataString, byte[] DataByteArray, Dictionary&lt;string, string&gt; Headers }</returns>
-    public static async Task<Result> Publish([PropertyTab] Input input, [PropertyTab] Connection connection, CancellationToken cancellationToken)
+    public static async Task<Result> Publish([PropertyTab] Input input, [PropertyTab] Connection connection,
+        CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory();
 
@@ -52,6 +57,7 @@ public class RabbitMQ
                     factory.UserName = connection.Username;
                     factory.Password = connection.Password;
                 }
+
                 factory.HostName = connection.Host;
 
                 if (connection.Port != 0) factory.Port = connection.Port;
@@ -65,7 +71,9 @@ public class RabbitMQ
         var channel = await GetRabbitMQChannel(connection, factory, cancellationToken);
 
         var dataType = input.InputType.Equals(InputType.ByteArray) ? "ByteArray" : "String";
-        var data = input.InputType.Equals(InputType.ByteArray) ? input.DataByteArray : Encoding.UTF8.GetBytes(input.DataString);
+        var data = input.InputType.Equals(InputType.ByteArray)
+            ? input.DataByteArray
+            : Encoding.UTF8.GetBytes(input.DataString);
 
         if (data.Length == 0)
             throw new ArgumentException("Publish: Message data is missing.");
@@ -73,12 +81,9 @@ public class RabbitMQ
         if (connection.Create)
         {
             // Create args dictionary for quorum queue arguments
-            var args = new Dictionary<string, object>
-            {
-                { "x-queue-type", "quorum" }
-            };
+            var args = new Dictionary<string, object> { { "x-queue-type", "quorum" } };
 
-            await channel.QueueDeclareAsync(queue: connection.QueueName,
+            var queueInfo = await channel.QueueDeclareAsync(queue: connection.QueueName,
                 durable: connection.Durable,
                 exclusive: false,
                 autoDelete: connection.AutoDelete,
@@ -87,7 +92,7 @@ public class RabbitMQ
 
             if (!string.IsNullOrEmpty(connection.ExchangeName))
             {
-                await channel.QueueBindAsync(queue: connection.QueueName,
+                await channel.QueueBindAsync(queue: queueInfo.QueueName,
                     exchange: connection.ExchangeName,
                     routingKey: connection.RoutingKey,
                     arguments: null,
@@ -95,10 +100,7 @@ public class RabbitMQ
             }
         }
 
-        BasicProperties basicProperties = new()
-        {
-            Persistent = connection.Durable
-        };
+        BasicProperties basicProperties = new() { Persistent = connection.Durable };
         AddHeadersToBasicProperties(basicProperties, input.Headers);
 
         var headers = new Dictionary<string, string>();
@@ -113,6 +115,12 @@ public class RabbitMQ
             basicProperties: basicProperties,
             body: data,
             cancellationToken: cancellationToken);
+
+        if (connection.ConnectionExpirationSeconds == 0)
+        {
+            var cacheKey = GenerateCacheKey(connection);
+            RabbitMqConnectionCache.Remove(cacheKey);
+        }
 
         return new Result(dataType,
             !string.IsNullOrEmpty(input.DataString) ? input.DataString : Encoding.UTF8.GetString(input.DataByteArray),
@@ -182,101 +190,108 @@ public class RabbitMQ
             basicProperties.Headers = messageHeaders;
     }
 
-    private static async Task<IChannel> GetRabbitMQChannel(Connection connection, ConnectionFactory factory, CancellationToken cancellationToken)
+    private static async Task<IChannel> GetRabbitMQChannel(Connection connection, ConnectionFactory factory,
+        CancellationToken cancellationToken)
     {
         var conn = await GetRabbitMQConnection(connection, factory, cancellationToken);
-
-        var retryCount = 0;
-        while (retryCount < 5)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                var channel = new RabbitMQChannel() { AMQPModel = await conn.CreateChannelAsync() };
-                return channel.AMQPModel;
-            }
-            catch (Exception ex)
-            {
-                if (ex.Message.Contains("The connection cannot support any more channels."))
-                {
-                    conn = await GetRabbitMQConnection(connection, factory, cancellationToken, true);
-                    continue;
-                }
-                // Log the exception here
-                // If the maximum number of retries has been reached, rethrow the exception
-                if (++retryCount >= 5)
-                    throw new Exception($"Getting Exception : {ex.Message} after {retryCount} retries.", ex);
-
-                // Wait for a certain period of time before retrying
-                Thread.Sleep(TimeSpan.FromSeconds(Math.Pow(2, retryCount)));
-            }
-        }
-
-        return null;
-    }
-
-    private static async Task<IConnection> GetRabbitMQConnection(Connection connection, ConnectionFactory factory, CancellationToken cancellationToken, bool forceCreate = false)
-    {
-        var cacheKey = GetCacheKey(connection);
-
-        if (!forceCreate)
-        {
-            var key = GetCacheKeyFromMemoryCache(cacheKey);
-            if (key != null)
-            {
-                if (RabbitMQConnectionCache.Get(GetCacheKeyFromMemoryCache(cacheKey)) is RabbitMQConnection conn && conn.AMQPConnection.IsOpen)
-                    return conn.AMQPConnection;
-            }
-
-        }
-
-        var retryCount = 0;
-        while (retryCount < 5)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                var rabbitMQConnection = new RabbitMQConnection { AMQPConnection = await factory.CreateConnectionAsync() };
-                RabbitMQConnectionCache.Add($"{cacheKey}_{Guid.NewGuid()}", rabbitMQConnection, new CacheItemPolicy() { RemovedCallback = RemovedCallback, SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds) });
-                return rabbitMQConnection.AMQPConnection;
-            }
-            catch (Exception ex)
-            {
-                // Log the exception here
-                // If the maximum number of retries has been reached, rethrow the exception
-                if (++retryCount >= 5)
-                    throw new Exception($"Operation failed: {ex.Message} after {retryCount} retries.", ex);
-
-                // Wait for a certain period of time before retrying
-                Thread.Sleep(TimeSpan.FromSeconds(2));
-            }
-        }
-
-        return null;
-    }
-
-    [ExcludeFromCodeCoverage]
-    private static string GetCacheKey(Connection connection)
-    {
-        var key = $"{connection.Host}:";
-        if (connection.AuthenticationMethod == AuthenticationMethod.Host)
-        {
-            key += $"{connection.Username}:{connection.Password}:{connection.Port}:";
-        }
-
-        key += $"{connection.QueueName}:{connection.ExchangeName}:{connection.RoutingKey}:" +
-            $"{connection.Create}:{connection.AutoDelete}:{connection.Durable}:{connection.Quorum}:{connection.Timeout}";
-
-        return key;
-    }
-
-    [ExcludeFromCodeCoverage]
-    private static string GetCacheKeyFromMemoryCache(string cacheKey)
-    {
+        cancellationToken.ThrowIfCancellationRequested();
+        IChannel channel = null;
         try
         {
-            return RabbitMQConnectionCache.ToList().Where(e => e.Key.Split("_")[0] == cacheKey).Select(e => e.Key).FirstOrDefault();
+            channel = await conn.CreateChannelAsync(cancellationToken: cancellationToken);
         }
-        catch { return null; }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("The connection cannot support any more channels."))
+            {
+                conn = await GetRabbitMQConnection(connection, factory, cancellationToken, true);
+                if (conn == null) throw new Exception("FAIL! Failed to create new connection for channel.", ex);
+                channel = await conn.CreateChannelAsync(cancellationToken: cancellationToken);
+                if (channel == null) throw new Exception("FAIL! Failed to create new channel.", ex);
+            }
+        }
+
+        return channel ?? throw new Exception("Failed to create channel.");
+    }
+
+    private static readonly SemaphoreSlim ConnSemaphore = new(1, 1);
+
+    private static async Task<IConnection> GetRabbitMQConnection(Connection connection, ConnectionFactory factory,
+        CancellationToken cancellationToken, bool forceCreate = false)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var cacheKey = GenerateCacheKey(connection);
+
+        // Try to get a cached connection (fast path)
+        if (!forceCreate &&
+            RabbitMqConnectionCache.Get(cacheKey) is IConnection { IsOpen: true } cached1)
+        {
+            return cached1;
+        }
+
+        await ConnSemaphore.WaitAsync(cancellationToken);
+        try
+        {
+            // Check cache AGAIN (someone may have beaten us)
+            if (!forceCreate &&
+                RabbitMqConnectionCache.Get(cacheKey) is IConnection { IsOpen: true } cached2)
+            {
+                return cached2;
+            }
+
+            var created = await factory.CreateConnectionAsync(cancellationToken);
+
+
+            if (forceCreate)
+            {
+                RabbitMqConnectionCache.Remove(cacheKey);
+            }
+
+
+            // Try to insert our connection
+            var added = RabbitMqConnectionCache.Add(cacheKey, created,
+                new CacheItemPolicy
+                {
+                    RemovedCallback = RemovedCallback,
+                    SlidingExpiration = TimeSpan.FromSeconds(connection.ConnectionExpirationSeconds)
+                });
+
+            if (added)
+            {
+                return created;
+            }
+
+            // Something else was added between Try & Add
+            if (RabbitMqConnectionCache.Get(cacheKey) is IConnection { IsOpen: true } cached3)
+            {
+                await created.CloseAsync(cancellationToken);
+                created.Dispose();
+                return cached3;
+            }
+
+            await created.CloseAsync(cancellationToken);
+            created.Dispose();
+            throw new Exception("Failed to create connection.");
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Operation failed: {ex.Message}", ex);
+        }
+        finally
+        {
+            ConnSemaphore.Release();
+        }
+    }
+
+    [ExcludeFromCodeCoverage]
+    private static string GenerateCacheKey(Connection connection)
+    {
+        var key = $"{connection.Host}:{connection.Timeout}";
+        if (connection.AuthenticationMethod == AuthenticationMethod.Host)
+        {
+            key += $":{connection.Username}:{connection.Password}:{connection.Port}";
+        }
+
+        return key;
     }
 }

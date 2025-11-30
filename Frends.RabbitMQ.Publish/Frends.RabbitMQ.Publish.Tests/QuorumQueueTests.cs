@@ -8,20 +8,26 @@ using System.Threading.Tasks;
 namespace Frends.RabbitMQ.Publish.Tests;
 
 [TestClass]
-public class QuorumQueueTests
+public class QuorumQueueTests : TestBase
 {
     /// <summary>
     /// You will need access to RabbitMQ queue, you can create it e.g. by running
     /// docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123 rabbitmq:3.9-management
-    /// In that case URI would be amqp://agent:agent123@localhost:5672 
+    /// In that case URI would be amqp://agent:agent123@localhost:5672
     /// Access UI from http://localhost:15672 username: agent, password: agent123
     /// </summary>
-
     private const string _testUri = "amqp://agent:agent123@localhost:5672";
+
     private const string _testHost = "localhost";
     private const string _queue = "quorum";
     private const string _exchange = "exchange";
     private static Header[] _headers = Array.Empty<Header>();
+
+    [ClassInitialize]
+    public static void Init(TestContext testContext) => Initialize(testContext);
+
+    [ClassCleanup]
+    public static void Cleanup() => BaseCleanup();
 
     [TestInitialize]
     public async Task CreateExchangeAndQueue()
@@ -30,21 +36,18 @@ public class QuorumQueueTests
         await using var connection = await factory.CreateConnectionAsync();
         await using var channel = await connection.CreateChannelAsync();
         await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
-        var args = new Dictionary<string, object?>
-        {
-            ["x-queue-type"] = "quorum"
-        };
+        var args = new Dictionary<string, object?> { ["x-queue-type"] = "quorum" };
         await channel.QueueDeclareAsync(_queue, durable: true, exclusive: false, autoDelete: false, arguments: args);
         await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
 
-        _headers = new Header[] {
+        _headers = new Header[]
+        {
             new() { Name = "X-AppId", Value = "application id" },
             new() { Name = "X-ClusterId", Value = "cluster id" },
             new() { Name = "Content-Type", Value = "content type" },
             new() { Name = "Content-Encoding", Value = "content encoding" },
             new() { Name = "X-CorrelationId", Value = "correlation id" },
-            new() { Name = "X-Expiration", Value = "100" },
-            new() { Name = "X-MessageId", Value = "message id" },
+            new() { Name = "X-Expiration", Value = "100" }, new() { Name = "X-MessageId", Value = "message id" },
             new() { Name = "Custom-Header", Value = "custom header" }
         };
     }
@@ -73,12 +76,7 @@ public class QuorumQueueTests
             Quorum = true
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = _headers
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
         var result = await RabbitMQ.Publish(input, connection, default);
@@ -146,12 +144,7 @@ public class QuorumQueueTests
             Quorum = true
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = null
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
 
         var readValues = new Helper.ReadValues();
         var result = await RabbitMQ.Publish(input, connection, default);
@@ -184,9 +177,7 @@ public class QuorumQueueTests
 
         Input input = new()
         {
-            DataByteArray = Encoding.UTF8.GetBytes("test message"),
-            InputType = InputType.ByteArray,
-            Headers = null
+            DataByteArray = Encoding.UTF8.GetBytes("test message"), InputType = InputType.ByteArray, Headers = null
         };
 
         var readValues = new Helper.ReadValues();
@@ -214,12 +205,7 @@ public class QuorumQueueTests
             Quorum = true
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = _headers
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
         var result = await RabbitMQ.Publish(input, connection, default);
@@ -236,7 +222,7 @@ public class QuorumQueueTests
     public async Task TestURIConnectionWithCreateQueue()
     {
         await Helper.DeleteQuorumQueue(_testUri, _queue);
-        var newQueue = "quorum2";
+        var newQueue = "newQuorum";
         Connection connection = new()
         {
             Host = _testUri,
@@ -250,12 +236,7 @@ public class QuorumQueueTests
             AuthenticationMethod = AuthenticationMethod.URI,
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = _headers
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
         var result = await RabbitMQ.Publish(input, connection, default);
