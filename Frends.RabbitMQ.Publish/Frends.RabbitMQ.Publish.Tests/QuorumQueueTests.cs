@@ -3,7 +3,6 @@ using Frends.RabbitMQ.Publish.Tests.Lib;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Publish.Tests;
 
