@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.6.0] - 2025-30-11
+## [1.6.0] - 2025-11-30
 ### Fixed
 - Fix the parallel connections issue.
 - Fix the issue with binding unnamed queue.

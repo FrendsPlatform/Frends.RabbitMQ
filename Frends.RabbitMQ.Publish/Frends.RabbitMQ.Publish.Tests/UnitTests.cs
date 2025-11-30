@@ -39,10 +39,6 @@ public class UnitTests : TestBase
         await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
         await channel.QueueDeclareAsync(_queue, durable: false, exclusive: false, autoDelete: false);
         await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
-
-        await channel.ExchangeDeclareAsync("ex", type: "fanout", durable: false, autoDelete: false);
-
-
         _headers = new Header[]
         {
             new() { Name = "X-AppId", Value = "application id" },
