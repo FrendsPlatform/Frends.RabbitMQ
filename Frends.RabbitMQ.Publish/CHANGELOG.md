@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.0] - 2025-11-30
+### Fixed
+- Fix the parallel connections issue.
+- Fix the issue with binding unnamed queue.
+
 ## [1.5.0] - 2025-02-14
 ### Fixed
 - Update RabbitMQ.Client from 6.8.1 to 7.0.0

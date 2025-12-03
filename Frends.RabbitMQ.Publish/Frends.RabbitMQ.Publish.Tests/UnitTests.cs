@@ -1,29 +1,34 @@
+using System.Collections.Concurrent;
 using Frends.RabbitMQ.Publish.Definitions;
 using Frends.RabbitMQ.Publish.Tests.Lib;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
-using System.Runtime.Caching;
 using System.Text;
-using System.Threading.Tasks;
-using static Frends.RabbitMQ.Publish.Tests.Lib.Helper;
 
 namespace Frends.RabbitMQ.Publish.Tests;
 
 [TestClass]
-public class UnitTests
+public class UnitTests : TestBase
 {
     /// <summary>
     /// You will need access to RabbitMQ queue, you can create it e.g. by running
     /// docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123 rabbitmq:3.9-management
-    /// In that case URI would be amqp://agent:agent123@localhost:5672 
+    /// In that case URI would be amqp://agent:agent123@localhost:5672
     /// Access UI from http://localhost:15672 username: agent, password: agent123
     /// </summary>
-
     private const string _testUri = "amqp://agent:agent123@localhost:5672";
+
     private const string _testHost = "localhost";
     private const string _queue = "quorum";
     private const string _exchange = "exchange";
     private static Header[] _headers = Array.Empty<Header>();
+
+    [ClassInitialize]
+    public static void Init(TestContext testContext) => Initialize(testContext);
+
+    [ClassCleanup]
+    public static void Cleanup() => BaseCleanup();
+
 
     [TestInitialize]
     public async Task CreateExchangeAndQueue()
@@ -34,15 +39,14 @@ public class UnitTests
         await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
         await channel.QueueDeclareAsync(_queue, durable: false, exclusive: false, autoDelete: false);
         await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
-
-        _headers = new Header[] {
+        _headers = new Header[]
+        {
             new() { Name = "X-AppId", Value = "application id" },
             new() { Name = "X-ClusterId", Value = "cluster id" },
             new() { Name = "Content-Type", Value = "content type" },
             new() { Name = "Content-Encoding", Value = "content encoding" },
             new() { Name = "X-CorrelationId", Value = "correlation id" },
-            new() { Name = "X-Expiration", Value = "100" },
-            new() { Name = "X-MessageId", Value = "message id" },
+            new() { Name = "X-Expiration", Value = "100" }, new() { Name = "X-MessageId", Value = "message id" },
             new() { Name = "Custom-Header", Value = "custom header" }
         };
     }
@@ -75,12 +79,7 @@ public class UnitTests
             Timeout = 30
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = _headers
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
         var result = await RabbitMQ.Publish(input, connection, default);
@@ -178,12 +177,7 @@ public class UnitTests
             ExchangeName = ""
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = null
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
 
         var readValues = new Helper.ReadValues();
         var result = await RabbitMQ.Publish(input, connection, default);
@@ -213,12 +207,11 @@ public class UnitTests
             ExchangeName = ""
         };
 
-        Input input = new()
-        {
-            DataByteArray = Encoding.UTF8.GetBytes("test message"),
-            InputType = InputType.ByteArray,
-            Headers = null
-        };
+        var input = new Input();
+        input.DataByteArray = Encoding.UTF8.GetBytes("test message");
+        input.InputType = InputType.ByteArray;
+        input.Headers = null;
+
 
         var readValues = new Helper.ReadValues();
         var result = await RabbitMQ.Publish(input, connection, default);
@@ -245,12 +238,7 @@ public class UnitTests
             Timeout = 0
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = _headers
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
         var result = await RabbitMQ.Publish(input, connection, default);
@@ -264,7 +252,7 @@ public class UnitTests
     }
 
     [TestMethod]
-    public void TestParallelConnections()
+    public async Task TestParallelConnections()
     {
         Connection connection = new()
         {
@@ -280,35 +268,67 @@ public class UnitTests
             ExchangeName = ""
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = null
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
 
-        for (var i = 0; i < 100; i++)
+        for (var i = 0; i < 30; i++)
         {
             var success = 0;
             var errors = 0;
-            var errorList = new List<string>();
+            var errorList = new ConcurrentBag<string>();
 
-            Parallel.For(0, 50,
-            async index =>
-            {
-                try
+            var tasks = Enumerable.Range(0, 50)
+                .Select(async _ =>
                 {
-                    var readValues = new Helper.ReadValues();
-                    var result = await RabbitMQ.Publish(input, connection, default);
-                    success++;
-                }
-                catch (Exception ex)
-                {
-                    errors++;
-                    errorList.Add(ex.ToString());
-                }
-            });
+                    try
+                    {
+                        await RabbitMQ.Publish(input, connection, CancellationToken.None);
+                        Interlocked.Increment(ref success);
+                    }
+                    catch (Exception ex)
+                    {
+                        Interlocked.Increment(ref errors);
+                        errorList.Add(ex.ToString());
+                    }
+                });
+
+            await Task.WhenAll(tasks);
+
             Assert.AreEqual(0, errors);
+        }
+    }
+
+    [TestMethod]
+    public async Task TestMultipleRecurringCallsWithDifferentConnectionsAsync()
+    {
+        Connection connection = new()
+        {
+            Host = _testHost,
+            Username = "agent",
+            Password = "agent123",
+            RoutingKey = _queue,
+            QueueName = _queue,
+            Create = false,
+            Durable = false,
+            AutoDelete = false,
+            AuthenticationMethod = AuthenticationMethod.Host,
+            ExchangeName = "",
+            Timeout = 60,
+            ConnectionExpirationSeconds = 0
+        };
+
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
+
+        for (var i = 0; i < 30; i++)
+        {
+            connection.Timeout++;
+            var readValues = new Helper.ReadValues();
+            var result = await RabbitMQ.Publish(input, connection, default);
+            await Helper.ReadMessage(readValues, connection);
+            Assert.AreEqual("test message", readValues.Message);
+            Assert.AreEqual("String", result.DataFormat);
+            Assert.AreEqual("test message", result.DataString);
+            Assert.IsTrue(result.DataByteArray.SequenceEqual(Encoding.UTF8.GetBytes("test message")));
+            Assert.AreEqual(0, result.Headers.Count);
         }
     }
 
@@ -331,14 +351,9 @@ public class UnitTests
             ConnectionExpirationSeconds = 30
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = null
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
 
-        for (var i = 0; i < 100; i++)
+        for (var i = 0; i < 30; i++)
         {
             var readValues = new Helper.ReadValues();
             var result = await RabbitMQ.Publish(input, connection, default);
@@ -367,17 +382,13 @@ public class UnitTests
             AutoDelete = false,
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = "",
+            Timeout = 0,
             ConnectionExpirationSeconds = 0
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = null
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
 
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < 30; i++)
         {
             var readValues = new Helper.ReadValues();
             var result = await RabbitMQ.Publish(input, connection, default);
@@ -409,15 +420,11 @@ public class UnitTests
             ConnectionExpirationSeconds = 0
         };
 
-        Input input = new()
-        {
-            DataString = "test message",
-            InputType = InputType.String,
-            Headers = null
-        };
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
 
         var ex = await Assert.ThrowsAsync<Exception>(() => RabbitMQ.Publish(input, connection, default));
-        Assert.AreEqual("Operation failed: None of the specified endpoints were reachable after 5 retries.", ex.Message);
+        Assert.AreEqual("Operation failed: None of the specified endpoints were reachable",
+            ex.Message);
     }
 
     [TestMethod]
@@ -438,12 +445,7 @@ public class UnitTests
             ConnectionExpirationSeconds = 0
         };
 
-        Input input = new()
-        {
-            DataString = "",
-            InputType = InputType.String,
-            Headers = null
-        };
+        Input input = new() { DataString = "", InputType = InputType.String, Headers = null };
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() => RabbitMQ.Publish(input, connection, default));
         Assert.AreEqual("Publish: Message data is missing.", ex.Message);

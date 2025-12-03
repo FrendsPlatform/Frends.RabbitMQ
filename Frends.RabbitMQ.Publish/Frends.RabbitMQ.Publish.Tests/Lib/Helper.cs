@@ -1,7 +1,6 @@
 ﻿using RabbitMQ.Client;
 using System.Text;
 using Frends.RabbitMQ.Publish.Definitions;
-using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Publish.Tests.Lib;
 internal class Helper

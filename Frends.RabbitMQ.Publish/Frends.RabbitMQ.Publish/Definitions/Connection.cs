@@ -13,7 +13,7 @@ public class Connection
     /// </summary>
     /// <example>60</example>
     [DefaultValue(60)]
-    public int Timeout { get; set; }
+    public int Timeout { get; set; } = 60;
 
     /// <summary>
     /// URI or hostname with username and password.
@@ -22,7 +22,7 @@ public class Connection
     public AuthenticationMethod AuthenticationMethod { get; set; }
 
     /// <summary>
-    /// URI or hostname to connect to, depending of authentication method. 
+    /// URI or hostname to connect to, depending of authentication method.
     /// </summary>
     /// <example>RabbitHost, amqp://foo:bar@localhost:1234</example>
     [PasswordPropertyText]
@@ -89,13 +89,13 @@ public class Connection
     public bool AutoDelete { get; set; }
 
     /// <summary>
-    /// Should this queue will survive a broker restart? 
+    /// Should this queue will survive a broker restart?
     /// Note that Quorum queue supports only Durable settings.
     /// </summary>
     /// <example>true</example>
     [UIHint(nameof(Create), "", true)]
     [DefaultValue(true)]
-    public bool Durable { get; set; }
+    public bool Durable { get; set; } = true;
 
     /// <summary>
     /// Should this queue be a quorum queue.
@@ -103,12 +103,12 @@ public class Connection
     /// <example>true</example>
     [UIHint(nameof(Create), "", true)]
     [DefaultValue(true)]
-    public bool Quorum { get; set; }
+    public bool Quorum { get; set; } = true;
 
     /// <summary>
     /// Time in seconds how long a connection will be left open for reuse after the execution.
     /// </summary>
     /// <example>60</example>
     [DefaultValue(30)]
-    public int ConnectionExpirationSeconds { get; set; }
+    public int ConnectionExpirationSeconds { get; set; } = 30;
 }
