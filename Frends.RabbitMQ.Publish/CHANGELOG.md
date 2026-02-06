@@ -1,6 +1,6 @@
 ﻿# Changelog
 
-## [1.7.0] - 2025-02-14
+## [1.7.0] - 2026-02-06
 ### Added
 - New property: Result.Success.
 - New feature: Certificate‑based authentication via `AuthenticationMethod.Certificate`, with new enums (`CertificateSource`, `SslProtocol`, `CertificateStoreLocation`) and connection properties (`ClientCertificatePath`, `ClientCertificatePassword`, `CertificateBase64`, `CertificateBytes`, `StoreThumbprint`, `CertificateStoreLocation`, `SslProtocol`, `CertificateSource`). 
