@@ -9,18 +9,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0"/>
-        <PackageReference Include="MSTest.TestAdapter" Version="3.8.0"/>
-        <PackageReference Include="MSTest.TestFramework" Version="3.8.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+        <PackageReference Include="MSTest.TestAdapter" Version="3.8.0" />
+        <PackageReference Include="MSTest.TestFramework" Version="3.8.0" />
         <PackageReference Include="coverlet.collector" Version="6.0.4">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="RabbitMQ.Client" Version="7.0.0"/>
-        <PackageReference Include="Testcontainers" Version="4.9.0"/>
+        <PackageReference Include="RabbitMQ.Client" Version="7.2.0" />
+        <PackageReference Include="Testcontainers" Version="4.9.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Frends.RabbitMQ.Publish\Frends.RabbitMQ.Publish.csproj"/>
+        <ProjectReference Include="..\Frends.RabbitMQ.Publish\Frends.RabbitMQ.Publish.csproj" />
     </ItemGroup>
 </Project>

@@ -1,13 +1,15 @@
-﻿using System;
+﻿using Frends.RabbitMQ.Publish.Definitions;
+using RabbitMQ.Client;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using Frends.RabbitMQ.Publish.Definitions;
-using RabbitMQ.Client;
-using System.Runtime.Caching;
-using System.Threading;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Runtime.Caching;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Publish;
@@ -59,9 +61,28 @@ public static class RabbitMQ
                 }
 
                 factory.HostName = connection.Host;
+                if (connection.Port != 0) 
+                    factory.Port = connection.Port;
+                break;
+            case AuthenticationMethod.Certificate:
+                factory.HostName = connection.Host;
+                if (connection.Port != 0)
+                    factory.Port = connection.Port;
 
-                if (connection.Port != 0) factory.Port = connection.Port;
+                factory.Ssl.Enabled = true;
+                factory.Ssl.ServerName = connection.Host;
+                factory.Ssl.Version = SslProtocols.Tls12;
 
+                X509Certificate2 cert = connection.CertificateSource switch
+                {
+                    CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath, connection.ClientCertificatePassword),
+                    CertificateSource.Base64 => new X509Certificate2(Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
+                    CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes, connection.ClientCertificatePassword),
+                    CertificateSource.Store => LoadFromStore(connection.StoreThumbprint, connection.StoreLocation), _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                };
+
+                factory.Ssl.Certs = new X509Certificate2Collection(cert);
+                factory.AuthMechanisms = new IAuthMechanismFactory[] { new ExternalMechanismFactory() };
                 break;
         }
 
@@ -293,5 +314,21 @@ public static class RabbitMQ
         }
 
         return key;
+    }
+
+    private static X509Certificate2 LoadFromStore(string thumbprint, StoreLocation location)
+    {
+        using var store = new X509Store(StoreName.My, location);
+        store.Open(OpenFlags.ReadOnly);
+
+        var cert = store.Certificates
+            .Find(X509FindType.FindByThumbprint, thumbprint, validOnly: false)
+            .OfType<X509Certificate2>()
+            .FirstOrDefault();
+
+        if (cert == null)
+            throw new Exception($"Certificate with thumbprint {thumbprint} not found.");
+
+        return cert;
     }
 }

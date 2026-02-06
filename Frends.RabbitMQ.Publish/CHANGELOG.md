@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.7.0] - 2025-02-14
+### Fixed
+- Update RabbitMQ.Client from 7.0.0 to 7.2.0
+- Update System.Runtime.Caching from 9.0.2 to 10.0.2
+
 ## [1.6.0] - 2025-11-30
 ### Fixed
 - Fix the parallel connections issue.

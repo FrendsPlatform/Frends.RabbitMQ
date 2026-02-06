@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Frends.RabbitMQ.Publish.Definitions;
 
@@ -51,6 +52,55 @@ public class Connection
     /// <example>0</example>
     [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host)]
     public int Port { get; set; } = 0;
+
+    /// <summary>
+    /// Specifies the source from which the client certificate should be loaded.
+    /// </summary>
+    /// <example>CertificateSource.File</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    public CertificateSource CertificateSource { get; set; }
+
+    /// <summary>
+    /// Full file system path to a client certificate file (.pfx or .p12) used for TLS client‑certificate authentication.
+    /// </summary>
+    /// <example>C:\certs\client-auth.pfx</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    public string ClientCertificatePath { get; set; }
+
+    /// <summary>
+    /// Password required to decrypt the certificate file. Needed for password‑protected .pfx/.p12 certificates.
+    /// </summary>
+    /// <example>MyStrongPassword123!</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    public string ClientCertificatePassword { get; set; }
+
+    /// <summary>
+    /// Base64‑encoded representation of a client certificate (.pfx or .p12).
+    /// </summary>
+    /// <example>MIIF2wIBAzCCB...</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    public string CertificateBase64 { get; set; }
+
+    /// <summary>
+    /// Raw byte array containing a client certificate (.pfx or .p12).
+    /// </summary>
+    /// <example>byte[] { 1, 2, 3, 4, 5 }</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    public byte[] CertificateBytes { get; set; }
+
+    /// <summary>
+    /// Thumbprint of a certificate stored in the Windows certificate store.
+    /// </summary>
+    /// <example>ab12cd34ef56ab78cd90ef12ab34cd56ef7890ab</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    public string StoreThumbprint { get; set; }
+
+    /// <summary>
+    /// Windows certificate store location to search when loading a certificate by thumbprint.
+    /// </summary>
+    /// <example>StoreLocation.CurrentUser</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    public StoreLocation StoreLocation { get; set; } = StoreLocation.CurrentUser;
 
     /// <summary>
     /// The name of the queue. Leave empty to make the server generate a name.
