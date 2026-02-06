@@ -8,6 +8,12 @@ namespace Frends.RabbitMQ.Publish.Definitions;
 public class Result
 {
     /// <summary>
+    /// Task executed without errors?
+    /// </summary>
+    /// <example>true</example>
+    public bool Success { get; private set; }
+
+    /// <summary>
     /// Published data format.
     /// </summary>
     /// <example>String</example>
@@ -31,8 +37,9 @@ public class Result
     /// <example>foo, bar</example>
     public Dictionary<string, string> Headers { get; private set; }
 
-    internal Result(string dataFormat, string dataString, byte[] dataByteArray, Dictionary<string, string> headers)
+    internal Result(bool success, string dataFormat, string dataString, byte[] dataByteArray, Dictionary<string, string> headers)
     {
+        Success = success;
         DataFormat = dataFormat;
         DataString = dataString;
         DataByteArray = dataByteArray;

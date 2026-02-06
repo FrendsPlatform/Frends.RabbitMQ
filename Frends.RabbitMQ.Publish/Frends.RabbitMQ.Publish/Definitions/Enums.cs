@@ -44,3 +44,26 @@ public enum CertificateSource
     RawBytes
 #pragma warning restore CS1591 // self explanatory.
 }
+
+/// <summary>
+/// SSL protocol options
+/// </summary>
+public enum SslProtocol
+{
+#pragma warning disable CS1591 // self explanatory.
+    None,
+    Tls12,
+    Tls13
+#pragma warning restore CS1591 // self explanatory.
+}
+
+/// <summary>
+/// Store location options
+/// </summary>
+public enum CertificateStoreLocation
+{
+#pragma warning disable CS1591 // self explanatory.
+    LocalMachine,
+    CurrentUser
+#pragma warning restore CS1591 // self explanatory.
+}

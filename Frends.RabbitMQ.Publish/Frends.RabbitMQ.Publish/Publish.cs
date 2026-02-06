@@ -43,8 +43,7 @@ public static class RabbitMQ
     /// <param name="connection">Connection parameters.</param>
     /// <param name="cancellationToken">CancellationToken given by Frends to terminate the Task.</param>
     /// <returns>Object { string DataFormat, string DataString, byte[] DataByteArray, Dictionary&lt;string, string&gt; Headers }</returns>
-    public static async Task<Result> Publish([PropertyTab] Input input, [PropertyTab] Connection connection,
-        CancellationToken cancellationToken)
+    public static async Task<Result> Publish([PropertyTab] Input input, [PropertyTab] Connection connection, CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory();
 
@@ -71,14 +70,26 @@ public static class RabbitMQ
 
                 factory.Ssl.Enabled = true;
                 factory.Ssl.ServerName = connection.Host;
-                factory.Ssl.Version = SslProtocols.Tls12;
+                factory.Ssl.Version = connection.SslProtocol switch
+                {
+                    SslProtocol.Tls12 => SslProtocols.Tls12,
+                    SslProtocol.Tls13 => SslProtocols.Tls13,
+                    SslProtocol.None => SslProtocols.None,
+                    _ => SslProtocols.None
+                };
+
 
                 X509Certificate2 cert = connection.CertificateSource switch
                 {
                     CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath, connection.ClientCertificatePassword),
                     CertificateSource.Base64 => new X509Certificate2(Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
                     CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes, connection.ClientCertificatePassword),
-                    CertificateSource.Store => LoadFromStore(connection.StoreThumbprint, connection.StoreLocation), _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                    CertificateSource.Store => LoadFromStore(connection.StoreThumbprint, connection.CertificateStoreLocation switch
+                    {
+                        CertificateStoreLocation.LocalMachine => StoreLocation.LocalMachine,
+                        CertificateStoreLocation.CurrentUser => StoreLocation.CurrentUser,
+                        _ => StoreLocation.CurrentUser }
+                    ), _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
                 };
 
                 factory.Ssl.Certs = new X509Certificate2Collection(cert);
@@ -143,7 +154,7 @@ public static class RabbitMQ
             RabbitMqConnectionCache.Remove(cacheKey);
         }
 
-        return new Result(dataType,
+        return new Result(true, dataType,
             !string.IsNullOrEmpty(input.DataString) ? input.DataString : Encoding.UTF8.GetString(input.DataByteArray),
             input.DataByteArray ?? Encoding.UTF8.GetBytes(input.DataString),
             headers);
@@ -311,6 +322,18 @@ public static class RabbitMQ
         if (connection.AuthenticationMethod == AuthenticationMethod.Host)
         {
             key += $":{connection.Username}:{connection.Password}:{connection.Port}";
+        }
+        else if (connection.AuthenticationMethod == AuthenticationMethod.Certificate)
+        {
+            key += $":cert:{connection.Port}:{connection.CertificateSource}";
+            key += connection.CertificateSource switch
+            {
+                CertificateSource.File => $":{connection.ClientCertificatePath}",
+                CertificateSource.Store => $":{connection.StoreThumbprint}:{connection.CertificateStoreLocation}",
+                CertificateSource.Base64 => $":{connection.CertificateBase64}",
+                CertificateSource.RawBytes => $":{connection.CertificateBytes}",
+                _ => string.Empty
+            };
         }
 
         return key;

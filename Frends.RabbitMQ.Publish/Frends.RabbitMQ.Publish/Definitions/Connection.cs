@@ -50,8 +50,15 @@ public class Connection
     /// The port to connect on. Value 0 indicates that the default port for the protocol should be used.
     /// </summary>
     /// <example>0</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host)]
     public int Port { get; set; } = 0;
+
+    /// <summary>
+    /// Specifies the SSL protocol used for the RabbitMQ connection. Use SslProtocol.None to allow the operating system to negotiate the most secure protocol available.
+    /// </summary>
+    /// <example>SslProtocol.None</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+
+    public SslProtocol SslProtocol { get; set; }
 
     /// <summary>
     /// Specifies the source from which the client certificate should be loaded.
@@ -72,6 +79,8 @@ public class Connection
     /// </summary>
     /// <example>MyStrongPassword123!</example>
     [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    [PasswordPropertyText]
+    [DisplayFormat(DataFormatString = "Text")]
     public string ClientCertificatePassword { get; set; }
 
     /// <summary>
@@ -98,9 +107,9 @@ public class Connection
     /// <summary>
     /// Windows certificate store location to search when loading a certificate by thumbprint.
     /// </summary>
-    /// <example>StoreLocation.CurrentUser</example>
+    /// <example>CertificateStoreLocation.CurrentUser</example>
     [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
-    public StoreLocation StoreLocation { get; set; } = StoreLocation.CurrentUser;
+    public CertificateStoreLocation CertificateStoreLocation { get; set; }
 
     /// <summary>
     /// The name of the queue. Leave empty to make the server generate a name.
