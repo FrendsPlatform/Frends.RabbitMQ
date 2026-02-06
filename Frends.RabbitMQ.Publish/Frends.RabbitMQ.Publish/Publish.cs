@@ -60,7 +60,7 @@ public static class RabbitMQ
                 }
 
                 factory.HostName = connection.Host;
-                if (connection.Port != 0) 
+                if (connection.Port != 0)
                     factory.Port = connection.Port;
                 break;
             case AuthenticationMethod.Certificate:
@@ -79,17 +79,20 @@ public static class RabbitMQ
                 };
 
 
+                var storeLocation = connection.CertificateStoreLocation switch
+                {
+                    CertificateStoreLocation.LocalMachine => StoreLocation.LocalMachine,
+                    CertificateStoreLocation.CurrentUser => StoreLocation.CurrentUser,
+                    _ => StoreLocation.CurrentUser
+                };
+
                 X509Certificate2 cert = connection.CertificateSource switch
                 {
                     CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath, connection.ClientCertificatePassword),
                     CertificateSource.Base64 => new X509Certificate2(Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
                     CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes, connection.ClientCertificatePassword),
-                    CertificateSource.Store => LoadFromStore(connection.StoreThumbprint, connection.CertificateStoreLocation switch
-                    {
-                        CertificateStoreLocation.LocalMachine => StoreLocation.LocalMachine,
-                        CertificateStoreLocation.CurrentUser => StoreLocation.CurrentUser,
-                        _ => StoreLocation.CurrentUser }
-                    ), _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                    CertificateSource.Store => LoadFromStore(connection.StoreThumbprint, storeLocation),
+                    _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
                 };
 
                 factory.Ssl.Certs = new X509Certificate2Collection(cert);

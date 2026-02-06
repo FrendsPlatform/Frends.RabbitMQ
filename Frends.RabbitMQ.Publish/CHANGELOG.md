@@ -3,7 +3,7 @@
 ## [1.7.0] - 2025-02-14
 ### Added
 - New property: Result.Success.
-- New feature: Added certificate‑based authentication, including new required connection properties. 
+- New feature: Certificate‑based authentication via `AuthenticationMethod.Certificate`, with new enums (`CertificateSource`, `SslProtocol`, `CertificateStoreLocation`) and connection properties (`ClientCertificatePath`, `ClientCertificatePassword`, `CertificateBase64`, `CertificateBytes`, `StoreThumbprint`, `CertificateStoreLocation`, `SslProtocol`, `CertificateSource`). 
 ### Changed
 - Update RabbitMQ.Client from 7.0.0 to 7.2.0
 - Update System.Runtime.Caching from 9.0.2 to 10.0.2

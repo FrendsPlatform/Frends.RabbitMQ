@@ -57,7 +57,6 @@ public class Connection
     /// </summary>
     /// <example>SslProtocol.None</example>
     [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
-
     public SslProtocol SslProtocol { get; set; }
 
     /// <summary>
