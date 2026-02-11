@@ -189,5 +189,86 @@ public class CertificateTests
         Assert.IsTrue(result.DataByteArray.SequenceEqual(Encoding.UTF8.GetBytes("test message")));
     }
 
+    [TestMethod]
+    public async Task TestCertFromBase64()
+    {
+        byte[] pfxBytes = File.ReadAllBytes(Path.Join(CertsDirPath, "client_certificate.pfx"));
+        string base64Pfx = Convert.ToBase64String(pfxBytes);
+        Connection connection = new()
+        {
+            Timeout = 30,
+            AuthenticationMethod = AuthenticationMethod.Certificate,
+            Host = TestHost,
+            Port = rabbitContainer.GetMappedPublicPort(5671),
+            SslProtocol = SslProtocol.None,
+            CertificateSource = CertificateSource.Base64,
+            CertificateBase64 = base64Pfx,
+            ClientCertificatePassword = "pass",
+            QueueName = Queue,
+            ExchangeName = "",
+            RoutingKey = Queue,
+            Create = false,
+            AutoDelete = false,
+            Durable = false,
+        };
 
+        Input input = new()
+        {
+            DataByteArray = Encoding.UTF8.GetBytes("test message"),
+            InputType = InputType.ByteArray,
+            Headers = headers,
+        };
+
+        var readValues = new Helper.ReadValues();
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
+
+        Assert.IsTrue(result.Success);
+        Assert.IsFalse(string.IsNullOrEmpty(readValues.Message));
+        Assert.AreEqual("test message", readValues.Message);
+        Assert.AreEqual("ByteArray", result.DataFormat);
+        Assert.AreEqual("test message", result.DataString);
+        Assert.IsTrue(result.DataByteArray.SequenceEqual(Encoding.UTF8.GetBytes("test message")));
+    }
+
+    [TestMethod]
+    public async Task TestCertFromRawBytes()
+    {
+        byte[] pfxBytes = File.ReadAllBytes(Path.Join(CertsDirPath, "client_certificate.pfx"));
+        Connection connection = new()
+        {
+            Timeout = 30,
+            AuthenticationMethod = AuthenticationMethod.Certificate,
+            Host = TestHost,
+            Port = rabbitContainer.GetMappedPublicPort(5671),
+            SslProtocol = SslProtocol.None,
+            CertificateSource = CertificateSource.RawBytes,
+            CertificateBytes = pfxBytes,
+            ClientCertificatePassword = "pass",
+            QueueName = Queue,
+            ExchangeName = "",
+            RoutingKey = Queue,
+            Create = false,
+            AutoDelete = false,
+            Durable = false,
+        };
+
+        Input input = new()
+        {
+            DataByteArray = Encoding.UTF8.GetBytes("test message"),
+            InputType = InputType.ByteArray,
+            Headers = headers,
+        };
+
+        var readValues = new Helper.ReadValues();
+        var result = await RabbitMQ.Publish(input, connection, default);
+        await Helper.ReadMessage(readValues, connection);
+
+        Assert.IsTrue(result.Success);
+        Assert.IsFalse(string.IsNullOrEmpty(readValues.Message));
+        Assert.AreEqual("test message", readValues.Message);
+        Assert.AreEqual("ByteArray", result.DataFormat);
+        Assert.AreEqual("test message", result.DataString);
+        Assert.IsTrue(result.DataByteArray.SequenceEqual(Encoding.UTF8.GetBytes("test message")));
+    }
 }

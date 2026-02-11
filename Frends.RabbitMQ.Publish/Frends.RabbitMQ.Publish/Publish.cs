@@ -364,6 +364,7 @@ public static class RabbitMQ
         return key;
     }
 
+    [ExcludeFromCodeCoverage(Justification = "Unable to setup store on GitHub")]
     private static X509Certificate2 LoadFromStore(string thumbprint, CertificateStoreLocation location)
     {
         var storeLocation = location switch
