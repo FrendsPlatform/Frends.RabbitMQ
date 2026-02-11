@@ -356,7 +356,7 @@ public static class RabbitMQ
                 CertificateSource.File => $":{connection.ClientCertificatePath}",
                 CertificateSource.Store => $":{connection.StoreThumbprint}:{connection.CertificateStoreLocation}",
                 CertificateSource.Base64 => $":{connection.CertificateBase64}",
-                CertificateSource.RawBytes => $":{connection.CertificateBytes}",
+                CertificateSource.RawBytes => $":{Convert.ToBase64String(connection.CertificateBytes)}",
                 _ => string.Empty
             };
         }
