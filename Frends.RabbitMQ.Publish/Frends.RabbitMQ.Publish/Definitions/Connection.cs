@@ -87,6 +87,7 @@ public class Connection
     /// </summary>
     /// <example>MIIF2wIBAzCCB...</example>
     [UIHint(nameof(CertificateSource), "", CertificateSource.Base64)]
+    [PasswordPropertyText]
     public string CertificateBase64 { get; set; }
 
     /// <summary>
@@ -94,6 +95,7 @@ public class Connection
     /// </summary>
     /// <example>byte[] { 1, 2, 3, 4, 5 }</example>
     [UIHint(nameof(CertificateSource), "", CertificateSource.RawBytes)]
+    [PasswordPropertyText]
     public byte[] CertificateBytes { get; set; }
 
     /// <summary>
