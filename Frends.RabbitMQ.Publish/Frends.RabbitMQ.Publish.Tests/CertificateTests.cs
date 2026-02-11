@@ -9,7 +9,7 @@ using DotNet.Testcontainers.Containers;
 
 namespace Frends.RabbitMQ.Publish.Tests;
 
-//To run those tests, ca_certificate.pem must be installed as trusted root certificate.
+//To run those tests, ca_certificate.crt must be installed as trusted root certificate.
 [TestClass]
 public class CertificateTests
 {
@@ -29,7 +29,7 @@ public class CertificateTests
             .WithImage("rabbitmq:4.2.3-management")
             .WithName("test-rabbitmq-ssl")
             .WithHostname("localhost")
-            .WithResourceMapping(Path.Combine(CertsDirPath, "ca_certificate.pem"), "/etc/rabbitmq/certs")
+            .WithResourceMapping(Path.Combine(CertsDirPath, "ca_certificate.crt"), "/etc/rabbitmq/certs")
             .WithResourceMapping(Path.Combine(CertsDirPath, "server_certificate.pem"), "/etc/rabbitmq/certs")
             .WithResourceMapping(Path.Combine(CertsDirPath, "server_key.pem"), "/etc/rabbitmq/certs")
             .WithResourceMapping(Path.Combine(ConfigsDirPath, "rabbitmq.conf"), "/etc/rabbitmq")
