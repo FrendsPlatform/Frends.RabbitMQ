@@ -36,7 +36,7 @@ public class CertificateTests
             .WithResourceMapping(Path.Combine(ConfigsDirPath, "enabled_plugins"), "/etc/rabbitmq")
             .WithEnvironment("RABBITMQ_DEFAULT_USER", "agent")
             .WithEnvironment("RABBITMQ_DEFAULT_PASS", "agent123")
-            .WithPortBinding(5671, 5671)
+            .WithPortBinding(5671, true)
             .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged(".*Server startup complete.*"))
             .Build();
 
@@ -72,7 +72,7 @@ public class CertificateTests
     {
         var factory = new ConnectionFactory();
         factory.HostName = "localhost";
-        factory.Port = 5671;
+        factory.Port = rabbitContainer.GetMappedPublicPort(5671);
         factory.Ssl.Enabled = true;
         factory.Ssl.ServerName = "localhost";
         factory.Ssl.Version = System.Security.Authentication.SslProtocols.None;
@@ -135,7 +135,7 @@ public class CertificateTests
     {
         var factory = new ConnectionFactory();
         factory.HostName = "localhost";
-        factory.Port = 5671;
+        factory.Port = rabbitContainer.GetMappedPublicPort(5671);
         factory.Ssl.Enabled = true;
         factory.Ssl.ServerName = "localhost";
         factory.Ssl.Version = System.Security.Authentication.SslProtocols.None;
@@ -157,7 +157,7 @@ public class CertificateTests
             Timeout = 30,
             AuthenticationMethod = AuthenticationMethod.Certificate,
             Host = TestHost,
-            Port = 5671,
+            Port = rabbitContainer.GetMappedPublicPort(5671),
             SslProtocol = SslProtocol.None,
             CertificateSource = CertificateSource.File,
             ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx"),
@@ -181,7 +181,8 @@ public class CertificateTests
         var result = await RabbitMQ.Publish(input, connection, default);
         await Helper.ReadMessage(readValues, connection);
 
-        Assert.IsTrue(!string.IsNullOrEmpty(readValues.Message));
+        Assert.IsTrue(result.Success);
+        Assert.IsFalse(string.IsNullOrEmpty(readValues.Message));
         Assert.AreEqual("test message", readValues.Message);
         Assert.AreEqual("ByteArray", result.DataFormat);
         Assert.AreEqual("test message", result.DataString);
