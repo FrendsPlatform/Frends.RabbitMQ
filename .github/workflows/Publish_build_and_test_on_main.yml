@@ -13,5 +13,8 @@ jobs:
     uses: FrendsPlatform/FrendsTasks/.github/workflows/linux_build_main.yml@main
     with:
       workdir: Frends.RabbitMQ.Publish
+      prebuild_command: |
+        sudo cp Frends.RabbitMQ.Publish.Tests/TestData/certs/ca_certificate.pem /usr/local/share/ca-certificates/
+        sudo update-ca-certificates
     secrets:
       badge_service_api_key: ${{ secrets.BADGE_SERVICE_API_KEY }}

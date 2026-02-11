@@ -10,9 +10,8 @@ namespace Frends.RabbitMQ.Publish.Tests;
 public class QuorumQueueTests : TestBase
 {
     /// <summary>
-    /// You will need access to RabbitMQ queue, you can create it e.g. by running
-    /// docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123 rabbitmq:3.9-management
-    /// In that case URI would be amqp://agent:agent123@localhost:5672
+    /// You will need access to RabbitMQ queue
+    /// URI can be amqp://agent:agent123@localhost:5672
     /// Access UI from http://localhost:15672 username: agent, password: agent123
     /// </summary>
     private const string _testUri = "amqp://agent:agent123@localhost:5672";
