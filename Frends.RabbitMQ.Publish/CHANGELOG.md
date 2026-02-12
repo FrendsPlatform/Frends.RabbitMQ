@@ -1,4 +1,12 @@
-# Changelog
+﻿# Changelog
+
+## [1.7.0] - 2026-02-06
+### Added
+- New property: Result.Success.
+- New feature: Certificate‑based authentication via `AuthenticationMethod.Certificate`, with new enums (`CertificateSource`, `SslProtocol`, `CertificateStoreLocation`) and connection properties (`ClientCertificatePath`, `ClientCertificatePassword`, `CertificateBase64`, `CertificateBytes`, `StoreThumbprint`, `CertificateStoreLocation`, `SslProtocol`, `CertificateSource`). 
+### Changed
+- Update RabbitMQ.Client from 7.0.0 to 7.2.0
+- Update System.Runtime.Caching from 9.0.2 to 10.0.2
 
 ## [1.6.0] - 2025-11-30
 ### Fixed
@@ -6,7 +14,7 @@
 - Fix the issue with binding unnamed queue.
 
 ## [1.5.0] - 2025-02-14
-### Fixed
+### Changed
 - Update RabbitMQ.Client from 6.8.1 to 7.0.0
 - Update System.Runtime.Caching from 8.0.0 to 9.0.2
 

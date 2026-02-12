@@ -1,13 +1,15 @@
-﻿using System;
+﻿using Frends.RabbitMQ.Publish.Definitions;
+using RabbitMQ.Client;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using Frends.RabbitMQ.Publish.Definitions;
-using RabbitMQ.Client;
-using System.Runtime.Caching;
-using System.Threading;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Runtime.Caching;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Publish;
@@ -40,7 +42,7 @@ public static class RabbitMQ
     /// <param name="input">Input parameters</param>
     /// <param name="connection">Connection parameters.</param>
     /// <param name="cancellationToken">CancellationToken given by Frends to terminate the Task.</param>
-    /// <returns>Object { string DataFormat, string DataString, byte[] DataByteArray, Dictionary&lt;string, string&gt; Headers }</returns>
+    /// <returns>Object { bool Success, string DataFormat, string DataString, byte[] DataByteArray, Dictionary&lt;string, string&gt; Headers }</returns>
     public static async Task<Result> Publish([PropertyTab] Input input, [PropertyTab] Connection connection,
         CancellationToken cancellationToken)
     {
@@ -50,6 +52,7 @@ public static class RabbitMQ
         {
             case AuthenticationMethod.URI:
                 factory.Uri = new Uri(connection.Host);
+
                 break;
             case AuthenticationMethod.Host:
                 if (!string.IsNullOrWhiteSpace(connection.Username) || !string.IsNullOrWhiteSpace(connection.Password))
@@ -59,8 +62,39 @@ public static class RabbitMQ
                 }
 
                 factory.HostName = connection.Host;
+                if (connection.Port != 0)
+                    factory.Port = connection.Port;
 
-                if (connection.Port != 0) factory.Port = connection.Port;
+                break;
+            case AuthenticationMethod.Certificate:
+                factory.HostName = connection.Host;
+                if (connection.Port != 0)
+                    factory.Port = connection.Port;
+                factory.Ssl.Enabled = true;
+                factory.Ssl.ServerName = connection.Host;
+                factory.Ssl.Version = connection.SslProtocol switch
+                {
+                    SslProtocol.Tls12 => SslProtocols.Tls12,
+                    SslProtocol.Tls13 => SslProtocols.Tls13,
+                    _ => SslProtocols.None,
+                };
+                X509Certificate2 cert = connection.CertificateSource switch
+                {
+                    CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath,
+                        connection.ClientCertificatePassword),
+                    CertificateSource.Base64 => new X509Certificate2(
+                        Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
+                    CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes,
+                        connection.ClientCertificatePassword),
+                    CertificateSource.Store => LoadFromStore(connection.StoreThumbprint,
+                        connection.CertificateStoreLocation),
+                    _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                };
+                factory.Ssl.Certs = new X509Certificate2Collection(cert);
+                factory.AuthMechanisms = new IAuthMechanismFactory[]
+                {
+                    new ExternalMechanismFactory()
+                };
 
                 break;
         }
@@ -81,7 +115,12 @@ public static class RabbitMQ
         if (connection.Create)
         {
             // Create args dictionary for quorum queue arguments
-            var args = new Dictionary<string, object> { { "x-queue-type", "quorum" } };
+            var args = new Dictionary<string, object>
+            {
+                {
+                    "x-queue-type", "quorum"
+                }
+            };
 
             var queueInfo = await channel.QueueDeclareAsync(queue: connection.QueueName,
                 durable: connection.Durable,
@@ -100,7 +139,10 @@ public static class RabbitMQ
             }
         }
 
-        BasicProperties basicProperties = new() { Persistent = connection.Durable };
+        BasicProperties basicProperties = new()
+        {
+            Persistent = connection.Durable
+        };
         AddHeadersToBasicProperties(basicProperties, input.Headers);
 
         var headers = new Dictionary<string, string>();
@@ -122,7 +164,7 @@ public static class RabbitMQ
             RabbitMqConnectionCache.Remove(cacheKey);
         }
 
-        return new Result(dataType,
+        return new Result(true, dataType,
             !string.IsNullOrEmpty(input.DataString) ? input.DataString : Encoding.UTF8.GetString(input.DataByteArray),
             input.DataByteArray ?? Encoding.UTF8.GetBytes(input.DataString),
             headers);
@@ -142,46 +184,54 @@ public static class RabbitMQ
                 case "HEADER_APPID":
                 case "HEADER.APPID":
                     basicProperties.AppId = header.Value;
+
                     break;
 
                 case "CLUSTERID":
                 case "HEADER_CLUSTERID":
                 case "HEADER.CLUSTERID":
                     basicProperties.ClusterId = header.Value;
+
                     break;
 
                 case "CONTENTENCODING":
                 case "HEADER_CONTENTENCODING":
                 case "HEADER.CONTENTENCODING":
                     basicProperties.ContentEncoding = header.Value;
+
                     break;
 
                 case "CONTENTTYPE":
                 case "HEADER_CONTENTTYPE":
                 case "HEADER.CONTENTTYPE":
                     basicProperties.ContentType = header.Value;
+
                     break;
 
                 case "CORRELATIONID":
                 case "HEADER_CORRELATIONID":
                 case "HEADER.CORRELATIONID":
                     basicProperties.CorrelationId = header.Value;
+
                     break;
 
                 case "EXPIRATION":
                 case "HEADER_EXPIRATION":
                 case "HEADER.EXPIRATION":
                     basicProperties.Expiration = header.Value;
+
                     break;
 
                 case "MESSAGEID":
                 case "HEADER_MESSAGEID":
                 case "HEADER.MESSAGEID":
                     basicProperties.MessageId = header.Value;
+
                     break;
 
                 default:
                     messageHeaders.Add(header.Name, header.Value);
+
                     break;
             }
         });
@@ -196,6 +246,7 @@ public static class RabbitMQ
         var conn = await GetRabbitMQConnection(connection, factory, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         IChannel channel = null;
+
         try
         {
             channel = await conn.CreateChannelAsync(cancellationToken: cancellationToken);
@@ -205,8 +256,10 @@ public static class RabbitMQ
             if (ex.Message.Contains("The connection cannot support any more channels."))
             {
                 conn = await GetRabbitMQConnection(connection, factory, cancellationToken, true);
+
                 if (conn == null) throw new Exception("FAIL! Failed to create new connection for channel.", ex);
                 channel = await conn.CreateChannelAsync(cancellationToken: cancellationToken);
+
                 if (channel == null) throw new Exception("FAIL! Failed to create new channel.", ex);
             }
         }
@@ -230,6 +283,7 @@ public static class RabbitMQ
         }
 
         await ConnSemaphore.WaitAsync(cancellationToken);
+
         try
         {
             // Check cache AGAIN (someone may have beaten us)
@@ -266,11 +320,13 @@ public static class RabbitMQ
             {
                 await created.CloseAsync(cancellationToken);
                 created.Dispose();
+
                 return cached3;
             }
 
             await created.CloseAsync(cancellationToken);
             created.Dispose();
+
             throw new Exception("Failed to create connection.");
         }
         catch (Exception ex)
@@ -287,11 +343,47 @@ public static class RabbitMQ
     private static string GenerateCacheKey(Connection connection)
     {
         var key = $"{connection.Host}:{connection.Timeout}";
+
         if (connection.AuthenticationMethod == AuthenticationMethod.Host)
         {
             key += $":{connection.Username}:{connection.Password}:{connection.Port}";
         }
+        else if (connection.AuthenticationMethod == AuthenticationMethod.Certificate)
+        {
+            key += $":cert:{connection.Port}:{connection.CertificateSource}";
+            key += connection.CertificateSource switch
+            {
+                CertificateSource.File => $":{connection.ClientCertificatePath}",
+                CertificateSource.Store => $":{connection.StoreThumbprint}:{connection.CertificateStoreLocation}",
+                CertificateSource.Base64 => $":{connection.CertificateBase64}",
+                CertificateSource.RawBytes => $":{Convert.ToBase64String(connection.CertificateBytes)}",
+                _ => string.Empty
+            };
+        }
 
         return key;
+    }
+
+    [ExcludeFromCodeCoverage(Justification = "Unable to setup store on GitHub")]
+    private static X509Certificate2 LoadFromStore(string thumbprint, CertificateStoreLocation location)
+    {
+        var storeLocation = location switch
+        {
+            CertificateStoreLocation.LocalMachine => StoreLocation.LocalMachine,
+            _ => StoreLocation.CurrentUser,
+        };
+
+        using var store = new X509Store(StoreName.My, storeLocation);
+        store.Open(OpenFlags.ReadOnly);
+
+        var cert = store.Certificates
+            .Find(X509FindType.FindByThumbprint, thumbprint, validOnly: false)
+            .OfType<X509Certificate2>()
+            .FirstOrDefault();
+
+        if (cert == null)
+            throw new Exception($"Certificate with thumbprint {thumbprint} not found.");
+
+        return cert;
     }
 }
