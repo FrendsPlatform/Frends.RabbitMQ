@@ -42,7 +42,7 @@ public static class RabbitMQ
     /// <param name="input">Input parameters</param>
     /// <param name="connection">Connection parameters.</param>
     /// <param name="cancellationToken">CancellationToken given by Frends to terminate the Task.</param>
-    /// <returns>Object { string DataFormat, string DataString, byte[] DataByteArray, Dictionary&lt;string, string&gt; Headers }</returns>
+    /// <returns>Object { bool Success, string DataFormat, string DataString, byte[] DataByteArray, Dictionary&lt;string, string&gt; Headers }</returns>
     public static async Task<Result> Publish([PropertyTab] Input input, [PropertyTab] Connection connection,
         CancellationToken cancellationToken)
     {

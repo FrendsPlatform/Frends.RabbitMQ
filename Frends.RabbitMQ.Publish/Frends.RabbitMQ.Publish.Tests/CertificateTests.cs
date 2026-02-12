@@ -22,6 +22,29 @@ public class CertificateTests
 
     private static IContainer? rabbitContainer;
 
+    private static Input DefaultInput() => new()
+    {
+        DataByteArray = Encoding.UTF8.GetBytes("test message"),
+        InputType = InputType.ByteArray,
+        Headers = headers,
+    };
+
+    private static Connection DefaultConnection() => new()
+    {
+        Timeout = 30,
+        AuthenticationMethod = AuthenticationMethod.Certificate,
+        Host = TestHost,
+        Port = rabbitContainer.GetMappedPublicPort(5671),
+        SslProtocol = SslProtocol.None,
+        QueueName = Queue,
+        ExchangeName = "",
+        RoutingKey = Queue,
+        Create = false,
+        AutoDelete = false,
+        Durable = false,
+    };
+
+
     [ClassInitialize]
     public static void Init(TestContext testContext)
     {
@@ -87,46 +110,13 @@ public class CertificateTests
         await channel.QueueBindAsync(Queue, Exchange, routingKey: "");
         headers = new Header[]
         {
-            new()
-            {
-                Name = "X-AppId",
-                Value = "application id"
-            },
-            new()
-            {
-                Name = "X-ClusterId",
-                Value = "cluster id"
-            },
-            new()
-            {
-                Name = "Content-Type",
-                Value = "content type"
-            },
-            new()
-            {
-                Name = "Content-Encoding",
-                Value = "content encoding"
-            },
-            new()
-            {
-                Name = "X-CorrelationId",
-                Value = "correlation id"
-            },
-            new()
-            {
-                Name = "X-Expiration",
-                Value = "100"
-            },
-            new()
-            {
-                Name = "X-MessageId",
-                Value = "message id"
-            },
-            new()
-            {
-                Name = "Custom-Header",
-                Value = "custom header"
-            }
+            new() { Name = "X-AppId", Value = "application id" },
+            new() { Name = "X-ClusterId", Value = "cluster id" },
+            new() { Name = "Content-Type", Value = "content type" },
+            new() { Name = "Content-Encoding", Value = "content encoding" },
+            new() { Name = "X-CorrelationId", Value = "correlation id" },
+            new() { Name = "X-Expiration", Value = "100" }, new() { Name = "X-MessageId", Value = "message id" },
+            new() { Name = "Custom-Header", Value = "custom header" }
         };
     }
 
@@ -152,34 +142,14 @@ public class CertificateTests
     [TestMethod]
     public async Task TestCertFromFile()
     {
-        Connection connection = new()
-        {
-            Timeout = 30,
-            AuthenticationMethod = AuthenticationMethod.Certificate,
-            Host = TestHost,
-            Port = rabbitContainer.GetMappedPublicPort(5671),
-            SslProtocol = SslProtocol.None,
-            CertificateSource = CertificateSource.File,
-            ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx"),
-            ClientCertificatePassword = "pass",
-            QueueName = Queue,
-            ExchangeName = "",
-            RoutingKey = Queue,
-            Create = false,
-            AutoDelete = false,
-            Durable = false,
-        };
-
-        Input input = new()
-        {
-            DataByteArray = Encoding.UTF8.GetBytes("test message"),
-            InputType = InputType.ByteArray,
-            Headers = headers,
-        };
+        var conn = DefaultConnection();
+        conn.CertificateSource = CertificateSource.File;
+        conn.ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx");
+        conn.ClientCertificatePassword = "pass";
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
-        await Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None);
+        await Helper.ReadMessage(readValues, conn);
 
         Assert.IsTrue(result.Success);
         Assert.IsFalse(string.IsNullOrEmpty(readValues.Message));
@@ -192,36 +162,16 @@ public class CertificateTests
     [TestMethod]
     public async Task TestCertFromBase64()
     {
-        byte[] pfxBytes = File.ReadAllBytes(Path.Join(CertsDirPath, "client_certificate.pfx"));
-        string base64Pfx = Convert.ToBase64String(pfxBytes);
-        Connection connection = new()
-        {
-            Timeout = 30,
-            AuthenticationMethod = AuthenticationMethod.Certificate,
-            Host = TestHost,
-            Port = rabbitContainer.GetMappedPublicPort(5671),
-            SslProtocol = SslProtocol.None,
-            CertificateSource = CertificateSource.Base64,
-            CertificateBase64 = base64Pfx,
-            ClientCertificatePassword = "pass",
-            QueueName = Queue,
-            ExchangeName = "",
-            RoutingKey = Queue,
-            Create = false,
-            AutoDelete = false,
-            Durable = false,
-        };
-
-        Input input = new()
-        {
-            DataByteArray = Encoding.UTF8.GetBytes("test message"),
-            InputType = InputType.ByteArray,
-            Headers = headers,
-        };
+        var pfxBytes = await File.ReadAllBytesAsync(Path.Join(CertsDirPath, "client_certificate.pfx"));
+        var base64Pfx = Convert.ToBase64String(pfxBytes);
+        var conn = DefaultConnection();
+        conn.CertificateSource = CertificateSource.Base64;
+        conn.CertificateBase64 = base64Pfx;
+        conn.ClientCertificatePassword = "pass";
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
-        await Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None);
+        await Helper.ReadMessage(readValues, conn);
 
         Assert.IsTrue(result.Success);
         Assert.IsFalse(string.IsNullOrEmpty(readValues.Message));
@@ -234,35 +184,15 @@ public class CertificateTests
     [TestMethod]
     public async Task TestCertFromRawBytes()
     {
-        byte[] pfxBytes = File.ReadAllBytes(Path.Join(CertsDirPath, "client_certificate.pfx"));
-        Connection connection = new()
-        {
-            Timeout = 30,
-            AuthenticationMethod = AuthenticationMethod.Certificate,
-            Host = TestHost,
-            Port = rabbitContainer.GetMappedPublicPort(5671),
-            SslProtocol = SslProtocol.None,
-            CertificateSource = CertificateSource.RawBytes,
-            CertificateBytes = pfxBytes,
-            ClientCertificatePassword = "pass",
-            QueueName = Queue,
-            ExchangeName = "",
-            RoutingKey = Queue,
-            Create = false,
-            AutoDelete = false,
-            Durable = false,
-        };
-
-        Input input = new()
-        {
-            DataByteArray = Encoding.UTF8.GetBytes("test message"),
-            InputType = InputType.ByteArray,
-            Headers = headers,
-        };
+        var pfxBytes = await File.ReadAllBytesAsync(Path.Join(CertsDirPath, "client_certificate.pfx"));
+        var conn = DefaultConnection();
+        conn.CertificateSource = CertificateSource.RawBytes;
+        conn.CertificateBytes = pfxBytes;
+        conn.ClientCertificatePassword = "pass";
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
-        await Helper.ReadMessage(readValues, connection);
+        var result = await RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None);
+        await Helper.ReadMessage(readValues, conn);
 
         Assert.IsTrue(result.Success);
         Assert.IsFalse(string.IsNullOrEmpty(readValues.Message));

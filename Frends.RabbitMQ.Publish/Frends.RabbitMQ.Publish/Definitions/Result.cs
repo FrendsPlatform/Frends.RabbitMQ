@@ -8,7 +8,7 @@ namespace Frends.RabbitMQ.Publish.Definitions;
 public class Result
 {
     /// <summary>
-    /// Task executed without errors?
+    /// Indicates if the task completed successfully.
     /// </summary>
     /// <example>true</example>
     public bool Success { get; private set; }
