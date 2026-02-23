@@ -73,7 +73,7 @@ public class RabbitMQ
 
         switch (ackType)
         {
-          case AckType.AutoNack:
+            case AckType.AutoNack:
                 await connectionHelper.AMQPModel.BasicNackAsync(deliveryTag, multiple: false, requeue: false);
                 break;
 
