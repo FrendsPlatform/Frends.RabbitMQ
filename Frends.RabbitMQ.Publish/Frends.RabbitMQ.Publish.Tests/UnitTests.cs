@@ -449,4 +449,32 @@ public class UnitTests : TestBase
         var ex = await Assert.ThrowsAsync<ArgumentException>(() => RabbitMQ.Publish(input, connection, default));
         Assert.AreEqual("Publish: Message data is missing.", ex.Message);
     }
+
+    [TestMethod]
+    public async Task TestPublishWithWrongVirtualHost_ShouldFail()
+    {
+        Connection connection = new()
+        {
+            Host = _testHost,
+            Username = "agent",
+            Password = "agent123",
+            RoutingKey = _queue,
+            QueueName = _queue,
+            Create = false,
+            Durable = false,
+            AutoDelete = false,
+            AuthenticationMethod = AuthenticationMethod.Host,
+            ExchangeName = "",
+            Timeout = 30,
+            VirtualHost = "/nonexistent"
+        };
+
+        Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
+
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(
+            () => RabbitMQ.Publish(input, connection, default)
+        );
+
+        Assert.IsTrue(ex.ToString().Contains("Failed to create channel"));
+    }
 }

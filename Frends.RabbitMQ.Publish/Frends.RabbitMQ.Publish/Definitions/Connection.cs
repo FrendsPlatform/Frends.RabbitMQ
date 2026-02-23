@@ -166,6 +166,13 @@ public class Connection
     public bool Quorum { get; set; } = true;
 
     /// <summary>
+    /// RabbitMQ virtual host to connect to.
+    /// </summary>
+    /// <example>/</example>
+    [DefaultValue("/")]
+    public string VirtualHost { get; set; } = "/";
+
+    /// <summary>
     /// Time in seconds how long a connection will be left open for reuse after the execution.
     /// </summary>
     /// <example>60</example>

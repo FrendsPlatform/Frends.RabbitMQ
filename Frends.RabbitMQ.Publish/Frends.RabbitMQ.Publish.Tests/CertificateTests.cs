@@ -201,4 +201,63 @@ public class CertificateTests
         Assert.AreEqual("test message", result.DataString);
         Assert.IsTrue(result.DataByteArray.SequenceEqual(Encoding.UTF8.GetBytes("test message")));
     }
+
+    [TestMethod]
+    public async Task CertificateWithCredentials_BothCorrect_ShouldSucceed()
+    {
+        var conn = DefaultConnection();
+        conn.AuthenticationMethod = AuthenticationMethod.CertificateWithCredentials;
+        conn.Username = "agent";
+        conn.Password = "agent123";
+        conn.CertificateSource = CertificateSource.File;
+        conn.ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx");
+        conn.ClientCertificatePassword = "pass";
+
+        var result = await RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None);
+
+        Assert.IsTrue(result.Success);
+        Assert.AreEqual("test message", result.DataString);
+    }
+
+    [TestMethod]
+    public async Task CertificateWithCredentials_WrongPassword_ShouldFail()
+    {
+        var conn = DefaultConnection();
+        conn.AuthenticationMethod = AuthenticationMethod.CertificateWithCredentials;
+        conn.Username = "agent";
+        conn.Password = "wrong-password";
+        conn.CertificateSource = CertificateSource.File;
+        conn.ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx");
+        conn.ClientCertificatePassword = "pass";
+
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(
+         () => RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None)
+     );
+
+        Assert.IsTrue(
+            ex.ToString().Contains("Login was refused using authentication mechanism PLAIN"),
+            $"Unexpected exception message: {ex}"
+        );
+    }
+
+    [TestMethod]
+    public async Task CertificateWithCredentials_UntrustedCertificate_ShouldFail()
+    {
+        var conn = DefaultConnection();
+        conn.AuthenticationMethod = AuthenticationMethod.CertificateWithCredentials;
+        conn.Username = "agent";
+        conn.Password = "agent123";
+        conn.CertificateSource = CertificateSource.File;
+        conn.ClientCertificatePath = Path.Join(CertsDirPath, "rogue_client_certificate.pfx");
+        conn.ClientCertificatePassword = "pass";
+
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(
+        () => RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None)
+    );
+
+        Assert.IsTrue(
+            ex.ToString().Contains("The certificate chain was issued by an authority that is not trusted"),
+            $"Unexpected exception message: {ex}"
+        );
+    }
 }

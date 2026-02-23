@@ -97,7 +97,38 @@ public static class RabbitMQ
                 };
 
                 break;
+            case AuthenticationMethod.CertificateWithCredentials:
+                factory.HostName = connection.Host;
+                if (connection.Port != 0)
+                    factory.Port = connection.Port;
+                factory.UserName = connection.Username;
+                factory.Password = connection.Password;
+                factory.Ssl.Enabled = true;
+                factory.Ssl.ServerName = connection.Host;
+                factory.Ssl.Version = connection.SslProtocol switch
+                {
+                    SslProtocol.Tls12 => SslProtocols.Tls12,
+                    SslProtocol.Tls13 => SslProtocols.Tls13,
+                    _ => SslProtocols.None,
+                };
+                X509Certificate2 certWithCreds = connection.CertificateSource switch
+                {
+                    CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath,
+                        connection.ClientCertificatePassword),
+                    CertificateSource.Base64 => new X509Certificate2(
+                        Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
+                    CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes,
+                        connection.ClientCertificatePassword),
+                    CertificateSource.Store => LoadFromStore(connection.StoreThumbprint,
+                        connection.CertificateStoreLocation),
+                    _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                };
+                factory.Ssl.Certs = new X509Certificate2Collection(certWithCreds);
+                break;
         }
+
+        if (!string.IsNullOrWhiteSpace(connection.VirtualHost))
+            factory.VirtualHost = connection.VirtualHost;
 
         if (connection.Timeout != 0)
             factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
@@ -342,7 +373,8 @@ public static class RabbitMQ
     [ExcludeFromCodeCoverage]
     private static string GenerateCacheKey(Connection connection)
     {
-        var key = $"{connection.Host}:{connection.Timeout}";
+        var virtualHost = string.IsNullOrWhiteSpace(connection.VirtualHost) ? "/" : connection.VirtualHost;
+        var key = $"{connection.Host}:{connection.Timeout}:{virtualHost}";
 
         if (connection.AuthenticationMethod == AuthenticationMethod.Host)
         {
@@ -351,6 +383,18 @@ public static class RabbitMQ
         else if (connection.AuthenticationMethod == AuthenticationMethod.Certificate)
         {
             key += $":cert:{connection.Port}:{connection.CertificateSource}";
+            key += connection.CertificateSource switch
+            {
+                CertificateSource.File => $":{connection.ClientCertificatePath}",
+                CertificateSource.Store => $":{connection.StoreThumbprint}:{connection.CertificateStoreLocation}",
+                CertificateSource.Base64 => $":{connection.CertificateBase64}",
+                CertificateSource.RawBytes => $":{Convert.ToBase64String(connection.CertificateBytes)}",
+                _ => string.Empty
+            };
+        }
+        else if (connection.AuthenticationMethod == AuthenticationMethod.CertificateWithCredentials)
+        {
+            key += $":certcreds:{connection.Port}:{connection.Username}:{connection.Password}:{connection.CertificateSource}";
             key += connection.CertificateSource switch
             {
                 CertificateSource.File => $":{connection.ClientCertificatePath}",

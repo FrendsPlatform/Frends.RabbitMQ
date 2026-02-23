@@ -29,7 +29,12 @@ public enum AuthenticationMethod
     /// <summary>
     /// Connect with certificate.
     /// </summary>
-    Certificate
+    Certificate,
+
+    /// <summary>
+    /// Connect with certificate and credentials.
+    /// </summary>
+    CertificateWithCredentials
 }
 
 /// <summary>

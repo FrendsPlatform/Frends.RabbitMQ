@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## [1.8.0] - 2026-02-23
+### Added
+- Added CertificateWithCredentials authentication method that requires both a valid client certificate and username/password credentials to connect.
+- Added VirtualHost field to Connection parameters to allow specifying a RabbitMQ virtual host. Defaults to "/".
+
 ## [1.7.0] - 2026-02-06
 ### Added
 - New property: Result.Success.
