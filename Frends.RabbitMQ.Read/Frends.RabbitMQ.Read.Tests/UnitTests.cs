@@ -13,7 +13,7 @@ public class UnitTests
     /// <summary>
     /// You will need access to RabbitMQ queue, you can create it e.g. by running
     /// docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123  rabbitmq:3.9-management
-    /// In that case URI would be amqp://agent:agent123@localhost:5672 
+    /// In that case URI would be amqp://agent:agent123@localhost:5672
     /// Access UI from http://localhost:15672 username: agent, password: agent123
     /// </summary>
 
@@ -61,7 +61,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoAck,
+            AckType = AckType.AutoAck,
             ReadMessageCount = 1,
         };
 
@@ -125,7 +125,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoAck,
+            AckType = AckType.AutoAck,
             ReadMessageCount = 2,
         };
 
@@ -159,7 +159,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoAck,
+            AckType = AckType.AutoAck,
             ReadMessageCount = 1,
         };
 
@@ -186,7 +186,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoNackAndRequeue,
+            AckType = AckType.AutoNackAndRequeue,
             ReadMessageCount = 1,
         };
 
@@ -216,7 +216,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoNackAndRequeue,
+            AckType = AckType.AutoNackAndRequeue,
             ReadMessageCount = 2,
         };
 
@@ -250,7 +250,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoNackAndRequeue,
+            AckType = AckType.AutoNackAndRequeue,
             ReadMessageCount = 1,
         };
 
@@ -277,7 +277,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoReject,
+            AckType = AckType.AutoReject,
             ReadMessageCount = 1,
         };
 
@@ -307,7 +307,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoReject,
+            AckType = AckType.AutoReject,
             ReadMessageCount = 2,
         };
 
@@ -341,7 +341,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoReject,
+            AckType = AckType.AutoReject,
             ReadMessageCount = 1,
         };
 
@@ -368,7 +368,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoRejectAndRequeue,
+            AckType = AckType.AutoRejectAndRequeue,
             ReadMessageCount = 1,
         };
 
@@ -398,7 +398,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoRejectAndRequeue,
+            AckType = AckType.AutoRejectAndRequeue,
             ReadMessageCount = 2,
         };
 
@@ -428,7 +428,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoRejectAndRequeue,
+            AckType = AckType.AutoRejectAndRequeue,
             ReadMessageCount = 1,
         };
 

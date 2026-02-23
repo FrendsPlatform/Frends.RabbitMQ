@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.0] - 2026-02-23
+### Changed
+- Acknowledgement of messages logic was simplified.
+- Types of acknowledge actions were clarified.
+
 ## [1.1.0] - 2025-02-14
 ### Fixed
 - Update RabbitMQ.Client from 6.4.0 to 7.1.2

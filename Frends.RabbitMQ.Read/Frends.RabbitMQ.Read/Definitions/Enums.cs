@@ -19,28 +19,14 @@ public enum AuthenticationMethod
 /// <summary>
 /// Acknowledge type while reading message.
 /// </summary>
-public enum ReadAckType
+public enum AckType
 {
 #pragma warning disable CS1591 // Self explanatory
-    ManualAck,
+    NoAck,
     AutoAck,
     AutoNack,
     AutoNackAndRequeue,
     AutoReject,
-    AutoRejectAndRequeue
-#pragma warning restore CS1591 // Self explanatory
-}
-
-/// <summary>
-/// Acknowledge type for manual operation.
-/// </summary>
-public enum ManualAckType
-{
-#pragma warning disable CS1591 // Self explanatory
-    Ack,
-    Nack,
-    NackAndRequeue,
-    Reject,
-    RejectAndRequeue
+    AutoRejectAndRequeue,
 #pragma warning restore CS1591 // Self explanatory
 }

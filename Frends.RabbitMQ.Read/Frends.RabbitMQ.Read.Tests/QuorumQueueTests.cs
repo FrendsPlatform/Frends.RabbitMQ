@@ -13,7 +13,7 @@ public class QuorumQueueTests
     /// <summary>
     /// You will need access to RabbitMQ queue, you can create it e.g. by running
     /// docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123  rabbitmq:3.9-management
-    /// In that case URI would be amqp://agent:agent123@localhost:5672 
+    /// In that case URI would be amqp://agent:agent123@localhost:5672
     /// Access UI from http://localhost:15672 username: agent, password: agent123
     /// </summary>
 
@@ -60,7 +60,7 @@ public class QuorumQueueTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = _exchange,
 
-            AutoAck = ReadAckType.AutoAck,
+            AckType = AckType.AutoAck,
             ReadMessageCount = 2,
         };
 
@@ -124,7 +124,7 @@ public class QuorumQueueTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoAck,
+            AckType = AckType.AutoAck,
             ReadMessageCount = 1,
         };
 
