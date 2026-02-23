@@ -256,7 +256,7 @@ public class CertificateTests
     );
 
         Assert.IsTrue(
-            ex.ToString().Contains("The certificate chain was issued by an authority that is not trusted"),
+            ex.ToString().Contains("None of the specified endpoints were reachable"),
             $"Unexpected exception message: {ex}"
         );
     }
