@@ -32,7 +32,7 @@ public class Connection
     /// Username to use when authenticating to the server.
     /// </summary>
     /// <example>foo</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.CertificateWithCredentials)]
     [DisplayFormat(DataFormatString = "Text")]
     public string Username { get; set; } = "";
 
@@ -40,7 +40,7 @@ public class Connection
     /// Password to use when authenticating to the server.
     /// </summary>
     /// <example>bar</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.CertificateWithCredentials)]
     [PasswordPropertyText]
     [DisplayFormat(DataFormatString = "Text")]
     public string Password { get; set; } = "";
@@ -49,21 +49,21 @@ public class Connection
     /// The port to connect on. Value 0 indicates that the default port for the protocol should be used.
     /// </summary>
     /// <example>0</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.Certificate)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
     public int Port { get; set; } = 0;
 
     /// <summary>
     /// Specifies the SSL protocol used for the RabbitMQ connection. Use SslProtocol.None to allow the operating system to negotiate the most secure protocol available.
     /// </summary>
     /// <example>SslProtocol.None</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
     public SslProtocol SslProtocol { get; set; }
 
     /// <summary>
     /// Specifies the source from which the client certificate should be loaded.
     /// </summary>
     /// <example>CertificateSource.File</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
     public CertificateSource CertificateSource { get; set; }
 
     /// <summary>
@@ -164,6 +164,14 @@ public class Connection
     [UIHint(nameof(Create), "", true)]
     [DefaultValue(true)]
     public bool Quorum { get; set; } = true;
+
+    /// <summary>
+    /// RabbitMQ virtual host to connect to.
+    /// </summary>
+    /// <example>/</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
+    [DefaultValue("/")]
+    public string VirtualHost { get; set; } = "/";
 
     /// <summary>
     /// Time in seconds how long a connection will be left open for reuse after the execution.
