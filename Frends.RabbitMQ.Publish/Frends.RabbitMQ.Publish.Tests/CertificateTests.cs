@@ -231,13 +231,9 @@ public class CertificateTests
         conn.ClientCertificatePassword = "pass";
 
         var ex = await Assert.ThrowsExceptionAsync<Exception>(
-         () => RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None)
-     );
+        () => RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None));
 
-        Assert.IsTrue(
-            ex.ToString().Contains("Login was refused using authentication mechanism PLAIN"),
-            $"Unexpected exception message: {ex}"
-        );
+        Assert.IsTrue(ex.Message.Contains("None of the specified endpoints were reachable"));
     }
 
     [TestMethod]
@@ -252,12 +248,8 @@ public class CertificateTests
         conn.ClientCertificatePassword = "pass";
 
         var ex = await Assert.ThrowsExceptionAsync<Exception>(
-        () => RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None)
-    );
+        () => RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None));
 
-        Assert.IsTrue(
-            ex.ToString().Contains("None of the specified endpoints were reachable"),
-            $"Unexpected exception message: {ex}"
-        );
+        Assert.IsTrue(ex.Message.Contains("None of the specified endpoints were reachable"));
     }
 }

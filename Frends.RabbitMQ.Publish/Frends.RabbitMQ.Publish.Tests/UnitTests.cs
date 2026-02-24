@@ -475,6 +475,6 @@ public class UnitTests : TestBase
             () => RabbitMQ.Publish(input, connection, default)
         );
 
-        Assert.IsTrue(ex.ToString().Contains("Failed to create channel"));
+        Assert.IsTrue(ex.Message.Contains("Failed to create channel"));
     }
 }

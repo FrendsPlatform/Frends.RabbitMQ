@@ -47,158 +47,166 @@ public static class RabbitMQ
         CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory();
-
-        switch (connection.AuthenticationMethod)
+        X509Certificate2 certToDispose = null;
+        
+        try
         {
-            case AuthenticationMethod.URI:
-                factory.Uri = new Uri(connection.Host);
+            switch (connection.AuthenticationMethod)
+            {
+                case AuthenticationMethod.URI:
+                    factory.Uri = new Uri(connection.Host);
 
-                break;
-            case AuthenticationMethod.Host:
-                if (!string.IsNullOrWhiteSpace(connection.Username) || !string.IsNullOrWhiteSpace(connection.Password))
-                {
+                    break;
+                case AuthenticationMethod.Host:
+                    if (!string.IsNullOrWhiteSpace(connection.Username) || !string.IsNullOrWhiteSpace(connection.Password))
+                    {
+                        factory.UserName = connection.Username;
+                        factory.Password = connection.Password;
+                    }
+
+                    factory.HostName = connection.Host;
+                    if (connection.Port != 0)
+                        factory.Port = connection.Port;
+
+                    break;
+                case AuthenticationMethod.Certificate:
+                    factory.HostName = connection.Host;
+                    if (connection.Port != 0)
+                        factory.Port = connection.Port;
+                    factory.Ssl.Enabled = true;
+                    factory.Ssl.ServerName = connection.Host;
+                    factory.Ssl.Version = connection.SslProtocol switch
+                    {
+                        SslProtocol.Tls12 => SslProtocols.Tls12,
+                        SslProtocol.Tls13 => SslProtocols.Tls13,
+                        _ => SslProtocols.None,
+                    };
+                    certToDispose = connection.CertificateSource switch
+                    {
+                        CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath,
+                            connection.ClientCertificatePassword),
+                        CertificateSource.Base64 => new X509Certificate2(
+                            Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
+                        CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes,
+                            connection.ClientCertificatePassword),
+                        CertificateSource.Store => LoadFromStore(connection.StoreThumbprint,
+                            connection.CertificateStoreLocation),
+                        _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                    };
+                    factory.Ssl.Certs = new X509Certificate2Collection(certToDispose);
+                    factory.AuthMechanisms = new IAuthMechanismFactory[]
+                    {
+                        new ExternalMechanismFactory()
+                    };
+
+                    break;
+                case AuthenticationMethod.CertificateWithCredentials:
+                    factory.HostName = connection.Host;
+                    if (connection.Port != 0)
+                        factory.Port = connection.Port;
                     factory.UserName = connection.Username;
                     factory.Password = connection.Password;
-                }
+                    factory.Ssl.Enabled = true;
+                    factory.Ssl.ServerName = connection.Host;
+                    factory.Ssl.Version = connection.SslProtocol switch
+                    {
+                        SslProtocol.Tls12 => SslProtocols.Tls12,
+                        SslProtocol.Tls13 => SslProtocols.Tls13,
+                        _ => SslProtocols.None,
+                    };
+                    certToDispose = connection.CertificateSource switch
+                    {
+                        CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath,
+                            connection.ClientCertificatePassword),
+                        CertificateSource.Base64 => new X509Certificate2(
+                            Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
+                        CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes,
+                            connection.ClientCertificatePassword),
+                        CertificateSource.Store => LoadFromStore(connection.StoreThumbprint,
+                            connection.CertificateStoreLocation),
+                        _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                    };
+                    factory.Ssl.Certs = new X509Certificate2Collection(certToDispose);
+                    break;
+            }
 
-                factory.HostName = connection.Host;
-                if (connection.Port != 0)
-                    factory.Port = connection.Port;
+            if (!string.IsNullOrWhiteSpace(connection.VirtualHost))
+                factory.VirtualHost = connection.VirtualHost;
 
-                break;
-            case AuthenticationMethod.Certificate:
-                factory.HostName = connection.Host;
-                if (connection.Port != 0)
-                    factory.Port = connection.Port;
-                factory.Ssl.Enabled = true;
-                factory.Ssl.ServerName = connection.Host;
-                factory.Ssl.Version = connection.SslProtocol switch
-                {
-                    SslProtocol.Tls12 => SslProtocols.Tls12,
-                    SslProtocol.Tls13 => SslProtocols.Tls13,
-                    _ => SslProtocols.None,
-                };
-                X509Certificate2 cert = connection.CertificateSource switch
-                {
-                    CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath,
-                        connection.ClientCertificatePassword),
-                    CertificateSource.Base64 => new X509Certificate2(
-                        Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
-                    CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes,
-                        connection.ClientCertificatePassword),
-                    CertificateSource.Store => LoadFromStore(connection.StoreThumbprint,
-                        connection.CertificateStoreLocation),
-                    _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
-                };
-                factory.Ssl.Certs = new X509Certificate2Collection(cert);
-                factory.AuthMechanisms = new IAuthMechanismFactory[]
-                {
-                    new ExternalMechanismFactory()
-                };
+            if (connection.Timeout != 0)
+                factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
 
-                break;
-            case AuthenticationMethod.CertificateWithCredentials:
-                factory.HostName = connection.Host;
-                if (connection.Port != 0)
-                    factory.Port = connection.Port;
-                factory.UserName = connection.Username;
-                factory.Password = connection.Password;
-                factory.Ssl.Enabled = true;
-                factory.Ssl.ServerName = connection.Host;
-                factory.Ssl.Version = connection.SslProtocol switch
-                {
-                    SslProtocol.Tls12 => SslProtocols.Tls12,
-                    SslProtocol.Tls13 => SslProtocols.Tls13,
-                    _ => SslProtocols.None,
-                };
-                X509Certificate2 certWithCreds = connection.CertificateSource switch
-                {
-                    CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath,
-                        connection.ClientCertificatePassword),
-                    CertificateSource.Base64 => new X509Certificate2(
-                        Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
-                    CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes,
-                        connection.ClientCertificatePassword),
-                    CertificateSource.Store => LoadFromStore(connection.StoreThumbprint,
-                        connection.CertificateStoreLocation),
-                    _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
-                };
-                factory.Ssl.Certs = new X509Certificate2Collection(certWithCreds);
-                break;
-        }
+            var channel = await GetRabbitMQChannel(connection, factory, cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(connection.VirtualHost))
-            factory.VirtualHost = connection.VirtualHost;
+            var dataType = input.InputType.Equals(InputType.ByteArray) ? "ByteArray" : "String";
+            var data = input.InputType.Equals(InputType.ByteArray)
+                ? input.DataByteArray
+                : Encoding.UTF8.GetBytes(input.DataString);
 
-        if (connection.Timeout != 0)
-            factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
+            if (data.Length == 0)
+                throw new ArgumentException("Publish: Message data is missing.");
 
-        var channel = await GetRabbitMQChannel(connection, factory, cancellationToken);
-
-        var dataType = input.InputType.Equals(InputType.ByteArray) ? "ByteArray" : "String";
-        var data = input.InputType.Equals(InputType.ByteArray)
-            ? input.DataByteArray
-            : Encoding.UTF8.GetBytes(input.DataString);
-
-        if (data.Length == 0)
-            throw new ArgumentException("Publish: Message data is missing.");
-
-        if (connection.Create)
-        {
-            // Create args dictionary for quorum queue arguments
-            var args = new Dictionary<string, object>
+            if (connection.Create)
             {
+                // Create args dictionary for quorum queue arguments
+                var args = new Dictionary<string, object>
                 {
-                    "x-queue-type", "quorum"
-                }
-            };
+                    {
+                        "x-queue-type", "quorum"
+                    }
+                };
 
-            var queueInfo = await channel.QueueDeclareAsync(queue: connection.QueueName,
-                durable: connection.Durable,
-                exclusive: false,
-                autoDelete: connection.AutoDelete,
-                arguments: connection.Quorum ? args : null,
+                var queueInfo = await channel.QueueDeclareAsync(queue: connection.QueueName,
+                    durable: connection.Durable,
+                    exclusive: false,
+                    autoDelete: connection.AutoDelete,
+                    arguments: connection.Quorum ? args : null,
+                    cancellationToken: cancellationToken);
+
+                if (!string.IsNullOrEmpty(connection.ExchangeName))
+                {
+                    await channel.QueueBindAsync(queue: queueInfo.QueueName,
+                        exchange: connection.ExchangeName,
+                        routingKey: connection.RoutingKey,
+                        arguments: null,
+                        cancellationToken: cancellationToken);
+                }
+            }
+
+            BasicProperties basicProperties = new()
+            {
+                Persistent = connection.Durable
+            };
+            AddHeadersToBasicProperties(basicProperties, input.Headers);
+
+            var headers = new Dictionary<string, string>();
+
+            if (basicProperties.Headers != null)
+                foreach (var head in basicProperties.Headers)
+                    headers.Add(head.Key.ToString(), head.Value.ToString());
+
+            await channel.BasicPublishAsync(exchange: connection.ExchangeName,
+                routingKey: connection.RoutingKey,
+                mandatory: true,
+                basicProperties: basicProperties,
+                body: data,
                 cancellationToken: cancellationToken);
 
-            if (!string.IsNullOrEmpty(connection.ExchangeName))
+            if (connection.ConnectionExpirationSeconds == 0)
             {
-                await channel.QueueBindAsync(queue: queueInfo.QueueName,
-                    exchange: connection.ExchangeName,
-                    routingKey: connection.RoutingKey,
-                    arguments: null,
-                    cancellationToken: cancellationToken);
+                var cacheKey = GenerateCacheKey(connection);
+                RabbitMqConnectionCache.Remove(cacheKey);
             }
+
+            return new Result(true, dataType,
+                !string.IsNullOrEmpty(input.DataString) ? input.DataString : Encoding.UTF8.GetString(input.DataByteArray),
+                input.DataByteArray ?? Encoding.UTF8.GetBytes(input.DataString),
+                headers);
         }
-
-        BasicProperties basicProperties = new()
+        finally
         {
-            Persistent = connection.Durable
-        };
-        AddHeadersToBasicProperties(basicProperties, input.Headers);
-
-        var headers = new Dictionary<string, string>();
-
-        if (basicProperties.Headers != null)
-            foreach (var head in basicProperties.Headers)
-                headers.Add(head.Key.ToString(), head.Value.ToString());
-
-        await channel.BasicPublishAsync(exchange: connection.ExchangeName,
-            routingKey: connection.RoutingKey,
-            mandatory: true,
-            basicProperties: basicProperties,
-            body: data,
-            cancellationToken: cancellationToken);
-
-        if (connection.ConnectionExpirationSeconds == 0)
-        {
-            var cacheKey = GenerateCacheKey(connection);
-            RabbitMqConnectionCache.Remove(cacheKey);
+            certToDispose?.Dispose();
         }
-
-        return new Result(true, dataType,
-            !string.IsNullOrEmpty(input.DataString) ? input.DataString : Encoding.UTF8.GetString(input.DataByteArray),
-            input.DataByteArray ?? Encoding.UTF8.GetBytes(input.DataString),
-            headers);
     }
 
     private static void AddHeadersToBasicProperties(IBasicProperties basicProperties, Header[] headers)
