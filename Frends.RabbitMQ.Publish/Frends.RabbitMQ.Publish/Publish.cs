@@ -136,7 +136,7 @@ public static class RabbitMQ
             if (connection.Timeout != 0)
                 factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
 
-            var channel = await GetRabbitMQChannel(connection, factory, cancellationToken);
+            await using var channel = await GetRabbitMQChannel(connection, factory, cancellationToken);
 
             var dataType = input.InputType.Equals(InputType.ByteArray) ? "ByteArray" : "String";
             var data = input.InputType.Equals(InputType.ByteArray)
