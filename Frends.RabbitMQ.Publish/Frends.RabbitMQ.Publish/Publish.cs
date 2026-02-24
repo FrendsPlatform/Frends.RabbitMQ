@@ -130,7 +130,7 @@ public static class RabbitMQ
                     break;
             }
 
-            if (!string.IsNullOrWhiteSpace(connection.VirtualHost))
+            if (connection.AuthenticationMethod != AuthenticationMethod.URI && !string.IsNullOrWhiteSpace(connection.VirtualHost))
                 factory.VirtualHost = connection.VirtualHost;
 
             if (connection.Timeout != 0)

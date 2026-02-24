@@ -169,6 +169,7 @@ public class Connection
     /// RabbitMQ virtual host to connect to.
     /// </summary>
     /// <example>/</example>
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
     [DefaultValue("/")]
     public string VirtualHost { get; set; } = "/";
 
