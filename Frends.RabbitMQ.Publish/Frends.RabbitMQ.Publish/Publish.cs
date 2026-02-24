@@ -48,7 +48,7 @@ public static class RabbitMQ
     {
         var factory = new ConnectionFactory();
         X509Certificate2 certToDispose = null;
-        
+
         try
         {
             switch (connection.AuthenticationMethod)
