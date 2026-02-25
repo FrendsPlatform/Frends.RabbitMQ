@@ -16,7 +16,7 @@ public class Connection
     public int ReadMessageCount { get; set; }
 
     /// <summary>
-    /// Set acknowledgement type.
+    /// Set the acknowledgement type.
     /// </summary>
     /// <example>AutoAck</example>
     [DefaultValue(AckType.AutoAck)]

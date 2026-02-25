@@ -91,7 +91,7 @@ public class RabbitMQ
             case AckType.NoAck:
             case AckType.AutoAck:
             default:
-                throw new ArgumentException("This method should not be executed with such parameter value.", ackType.ToString(), null);
+                throw new ArgumentException($"AcknowledgeMessage should not be called with {ackType}.", nameof(ackType));
         }
     }
 

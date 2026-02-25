@@ -49,7 +49,7 @@ public class UnitTests
     /// Connect with hostname and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithHostAutoNackAsync()
+    public async Task TestReadSingleMessageWithHostAutoAckAsync()
     {
         Connection connection = new()
         {
@@ -125,7 +125,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AckType = AckType.AutoAck,
+            AckType = AckType.AutoNack,
             ReadMessageCount = 2,
         };
 
@@ -149,7 +149,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithURIAutoNack()
+    public async Task TestReadSingleMessageWithUriAutoNack()
     {
         Connection connection = new()
         {
@@ -159,7 +159,35 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AckType = AckType.AutoAck,
+            AckType = AckType.AutoNack,
+            ReadMessageCount = 1,
+        };
+
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
+
+        Assert.AreEqual(1, result.MessagesBase64.Count);
+        Assert.AreEqual(1, result.MessageUTF8.Count);
+        Assert.IsTrue(result.Success);
+        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDA=")));
+        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
+    }
+
+    /// <summary>
+    /// Connect with URI and read single message.
+    /// </summary>
+    [TestMethod]
+    public async Task TestReadSingleMessageWithNoAck()
+    {
+        Connection connection = new()
+        {
+            Host = _testUri,
+            RoutingKey = _queue,
+            QueueName = _queue,
+            AuthenticationMethod = AuthenticationMethod.URI,
+            ExchangeName = null,
+
+            AckType = AckType.NoAck,
             ReadMessageCount = 1,
         };
 
@@ -240,7 +268,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithURIAutoNackAndRequeue()
+    public async Task TestReadSingleMessageWithUriAutoNackAndRequeue()
     {
         Connection connection = new()
         {
@@ -331,7 +359,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithURIAutoReject()
+    public async Task TestReadSingleMessageWithUriAutoReject()
     {
         Connection connection = new()
         {
@@ -418,7 +446,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithURIAutoRejectAndRequeue()
+    public async Task TestReadSingleMessageWithUriAutoRejectAndRequeue()
     {
         Connection connection = new()
         {
