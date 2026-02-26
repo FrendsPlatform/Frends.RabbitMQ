@@ -30,7 +30,7 @@ public class RabbitMQ
 
         while (connection.ReadMessageCount-- > 0)
         {
-            var rcvMessage = await connectionHelper.AMQPModel.BasicGetAsync(queue: connection.QueueName, autoAck: connection.AutoAck == ReadAckType.AutoAck);
+            var rcvMessage = await connectionHelper.AMQPModel.BasicGetAsync(queue: connection.QueueName, autoAck: connection.AckType == AckType.AutoAck);
             if (rcvMessage != null)
             {
                 baseList.Add(new Message
@@ -53,67 +53,46 @@ public class RabbitMQ
                 break;
         }
 
-        // Auto acking.
-        if (connection.AutoAck != ReadAckType.AutoAck && connection.AutoAck != ReadAckType.ManualAck)
-        {
-            var ackType = ManualAckType.NackAndRequeue;
-
-            switch (connection.AutoAck)
-            {
-                case ReadAckType.AutoNack:
-                    ackType = ManualAckType.Nack;
-                    break;
-
-                case ReadAckType.AutoNackAndRequeue:
-                    ackType = ManualAckType.NackAndRequeue;
-                    break;
-
-
-                case ReadAckType.AutoReject:
-                    ackType = ManualAckType.Reject;
-                    break;
-
-                case ReadAckType.AutoRejectAndRequeue:
-                    ackType = ManualAckType.RejectAndRequeue;
-                    break;
-            }
-
-            foreach (var message in baseList)
-                await AcknowledgeMessage(ackType, message.DeliveryTag, connectionHelper);
-        }
+        // Acking logic:
+        // - AutoAck is handled when IChannel.BasicGetAsync() is called with autoAck: true.
+        // - NoAck does not send AckMessage.
+        // - Other types are handled in AcknowledgeMessage() method
+        if (connection.AckType is AckType.AutoAck or AckType.NoAck)
+            return new Result(true, baseList, stringList);
+        foreach (var message in baseList)
+            await AcknowledgeMessage(connection.AckType, message.DeliveryTag, connectionHelper);
 
         return new Result(true, baseList, stringList);
     }
 
-    private static async Task<bool> AcknowledgeMessage(ManualAckType ackType, ulong deliveryTag, ConnectionHelper connectionHelper)
+    private static async Task AcknowledgeMessage(AckType ackType, ulong deliveryTag,
+        ConnectionHelper connectionHelper)
     {
         if (connectionHelper == null || connectionHelper.AMQPModel.IsClosed)
             throw new Exception("No connection to RabbitMQ");
 
         switch (ackType)
         {
-            case ManualAckType.Ack:
-                await connectionHelper.AMQPModel.BasicAckAsync(deliveryTag, multiple: false);
-                break;
-
-            case ManualAckType.Nack:
+            case AckType.AutoNack:
                 await connectionHelper.AMQPModel.BasicNackAsync(deliveryTag, multiple: false, requeue: false);
                 break;
 
-            case ManualAckType.NackAndRequeue:
+            case AckType.AutoNackAndRequeue:
                 await connectionHelper.AMQPModel.BasicNackAsync(deliveryTag, multiple: false, requeue: true);
                 break;
 
-            case ManualAckType.Reject:
+            case AckType.AutoReject:
                 await connectionHelper.AMQPModel.BasicRejectAsync(deliveryTag, requeue: false);
                 break;
 
-            case ManualAckType.RejectAndRequeue:
+            case AckType.AutoRejectAndRequeue:
                 await connectionHelper.AMQPModel.BasicRejectAsync(deliveryTag, requeue: true);
                 break;
+            case AckType.NoAck:
+            case AckType.AutoAck:
+            default:
+                throw new ArgumentException($"AcknowledgeMessage should not be called with {ackType}.", nameof(ackType));
         }
-
-        return true;
     }
 
     private static Dictionary<string, string> GetResponseHeaderDictionary(IReadOnlyBasicProperties basicProperties)

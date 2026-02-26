@@ -16,11 +16,11 @@ public class Connection
     public int ReadMessageCount { get; set; }
 
     /// <summary>
-    /// Set acknowledgement type.
+    /// Set the acknowledgement type.
     /// </summary>
     /// <example>AutoAck</example>
-    [DefaultValue(ReadAckType.AutoAck)]
-    public ReadAckType AutoAck { get; set; }
+    [DefaultValue(AckType.AutoAck)]
+    public AckType AckType { get; set; }
 
     /// <summary>
     /// URI or hostname with username and password.
@@ -29,7 +29,7 @@ public class Connection
     public AuthenticationMethod AuthenticationMethod { get; set; }
 
     /// <summary>
-    /// URI or hostname to connect to, depending of authentication method. 
+    /// URI or hostname to connect to, depending on authentication method.
     /// </summary>
     /// <example>RabbitHost, amqp://foo:bar@localhost:1234</example>
     [PasswordPropertyText]

@@ -13,7 +13,7 @@ public class UnitTests
     /// <summary>
     /// You will need access to RabbitMQ queue, you can create it e.g. by running
     /// docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123  rabbitmq:3.9-management
-    /// In that case URI would be amqp://agent:agent123@localhost:5672 
+    /// In that case URI would be amqp://agent:agent123@localhost:5672
     /// Access UI from http://localhost:15672 username: agent, password: agent123
     /// </summary>
 
@@ -49,7 +49,7 @@ public class UnitTests
     /// Connect with hostname and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithHostAutoNackAsync()
+    public async Task TestReadSingleMessageWithHostAutoAckAsync()
     {
         Connection connection = new()
         {
@@ -61,7 +61,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoAck,
+            AckType = AckType.AutoAck,
             ReadMessageCount = 1,
         };
 
@@ -125,7 +125,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoAck,
+            AckType = AckType.AutoNack,
             ReadMessageCount = 2,
         };
 
@@ -149,7 +149,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithURIAutoNack()
+    public async Task TestReadSingleMessageWithUriAutoNack()
     {
         Connection connection = new()
         {
@@ -159,7 +159,35 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoAck,
+            AckType = AckType.AutoNack,
+            ReadMessageCount = 1,
+        };
+
+        await Publish(connection, 1);
+        var result = await RabbitMQ.Read(connection);
+
+        Assert.AreEqual(1, result.MessagesBase64.Count);
+        Assert.AreEqual(1, result.MessageUTF8.Count);
+        Assert.IsTrue(result.Success);
+        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDA=")));
+        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
+    }
+
+    /// <summary>
+    /// Connect with URI and read single message.
+    /// </summary>
+    [TestMethod]
+    public async Task TestReadSingleMessageWithNoAck()
+    {
+        Connection connection = new()
+        {
+            Host = _testUri,
+            RoutingKey = _queue,
+            QueueName = _queue,
+            AuthenticationMethod = AuthenticationMethod.URI,
+            ExchangeName = null,
+
+            AckType = AckType.NoAck,
             ReadMessageCount = 1,
         };
 
@@ -186,7 +214,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoNackAndRequeue,
+            AckType = AckType.AutoNackAndRequeue,
             ReadMessageCount = 1,
         };
 
@@ -216,7 +244,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoNackAndRequeue,
+            AckType = AckType.AutoNackAndRequeue,
             ReadMessageCount = 2,
         };
 
@@ -240,7 +268,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithURIAutoNackAndRequeue()
+    public async Task TestReadSingleMessageWithUriAutoNackAndRequeue()
     {
         Connection connection = new()
         {
@@ -250,7 +278,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoNackAndRequeue,
+            AckType = AckType.AutoNackAndRequeue,
             ReadMessageCount = 1,
         };
 
@@ -277,7 +305,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoReject,
+            AckType = AckType.AutoReject,
             ReadMessageCount = 1,
         };
 
@@ -307,7 +335,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoReject,
+            AckType = AckType.AutoReject,
             ReadMessageCount = 2,
         };
 
@@ -331,7 +359,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithURIAutoReject()
+    public async Task TestReadSingleMessageWithUriAutoReject()
     {
         Connection connection = new()
         {
@@ -341,7 +369,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoReject,
+            AckType = AckType.AutoReject,
             ReadMessageCount = 1,
         };
 
@@ -368,7 +396,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoRejectAndRequeue,
+            AckType = AckType.AutoRejectAndRequeue,
             ReadMessageCount = 1,
         };
 
@@ -398,7 +426,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoRejectAndRequeue,
+            AckType = AckType.AutoRejectAndRequeue,
             ReadMessageCount = 2,
         };
 
@@ -418,7 +446,7 @@ public class UnitTests
     /// Connect with URI and read single message.
     /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithURIAutoRejectAndRequeue()
+    public async Task TestReadSingleMessageWithUriAutoRejectAndRequeue()
     {
         Connection connection = new()
         {
@@ -428,7 +456,7 @@ public class UnitTests
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
-            AutoAck = ReadAckType.AutoRejectAndRequeue,
+            AckType = AckType.AutoRejectAndRequeue,
             ReadMessageCount = 1,
         };
 
