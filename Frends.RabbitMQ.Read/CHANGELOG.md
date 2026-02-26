@@ -20,7 +20,7 @@
 
 ### Fixed
 
-- Fixed issue with connections and channels were left open by implementinf IDisposable class in ConnectionHelper class.
+- Fixed issue with connections and channels were left open by implementing IDisposable class in ConnectionHelper class.
 
 ### Added
 

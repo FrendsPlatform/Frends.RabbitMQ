@@ -22,19 +22,19 @@ public enum AuthenticationMethod
 public enum AckType
 {
     /// <summary>
-    /// Akc message will not be sent
+    /// Ack message will not be sent
     /// </summary>
     NoAck,
     /// <summary>
-    /// Akc message will be sent automatically
+    /// Ack message will be sent automatically
     /// </summary>
     AutoAck,
     /// <summary>
-    /// Nakc message will be sent automatically
+    /// Nack message will be sent automatically
     /// </summary>
     AutoNack,
     /// <summary>
-    /// Nakc message will be sent automatically and a message will be requeued
+    /// Nack message will be sent automatically and a message will be requeued
     /// </summary>
     AutoNackAndRequeue,
     /// <summary>

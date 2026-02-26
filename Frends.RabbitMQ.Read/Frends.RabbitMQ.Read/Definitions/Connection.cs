@@ -29,7 +29,7 @@ public class Connection
     public AuthenticationMethod AuthenticationMethod { get; set; }
 
     /// <summary>
-    /// URI or hostname to connect to, depending of authentication method.
+    /// URI or hostname to connect to, depending on authentication method.
     /// </summary>
     /// <example>RabbitHost, amqp://foo:bar@localhost:1234</example>
     [PasswordPropertyText]
