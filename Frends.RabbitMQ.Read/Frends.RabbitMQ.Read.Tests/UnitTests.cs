@@ -2,6 +2,7 @@ using Frends.RabbitMQ.Read.Definitions;
 using Frends.RabbitMQ.Read.Tests.Lib;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -473,6 +474,29 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.Success);
         Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDA=")));
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
+    }
+
+    [TestMethod]
+    public async Task TestPublishWithWrongVirtualHost_ShouldFail()
+    {
+        Connection connection = new()
+        {
+            Host = _testHost,
+            Username = "agent",
+            Password = "agent123",
+            RoutingKey = _queue,
+            QueueName = _queue,
+            AuthenticationMethod = AuthenticationMethod.Host,
+            ExchangeName = "",
+            Timeout = 30,
+            VirtualHost = "/nonexistent"
+        };
+
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(
+            () => RabbitMQ.Read(connection)
+        );
+
+        Assert.IsTrue(ex.Message.Contains("Failed to create channel"));
     }
 
     public static async Task Publish(Connection connection, int messageCount, Dictionary<string, object?>? args = null)

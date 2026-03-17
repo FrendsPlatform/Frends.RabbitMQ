@@ -235,7 +235,16 @@ public class RabbitMQ
         }
 
         if (connectionHelper.AMQPModel == null || connectionHelper.AMQPModel.IsClosed)
-            connectionHelper.AMQPModel = await connectionHelper.AMQPConnection.CreateChannelAsync();
+        {
+            try
+            {
+                connectionHelper.AMQPModel = await connectionHelper.AMQPConnection.CreateChannelAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Failed to create channel.", ex);
+            }
+        }
     }
 
     internal static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Connection connection)
