@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Frends.RabbitMQ.Read.Definitions;
@@ -124,7 +127,7 @@ public class RabbitMQ
         return allHeaders;
     }
 
-    private static async Task OpenConnectionIfClosed(ConnectionHelper connectionHelper, Connection connection)
+    internal static async Task OpenConnectionIfClosed(ConnectionHelper connectionHelper, Connection connection)
     {
         // Close connection if hostname has changed.
         if (IsConnectionHostNameChanged(connectionHelper, connection))
@@ -133,35 +136,105 @@ public class RabbitMQ
         if (connectionHelper.AMQPConnection == null || connectionHelper.AMQPConnection.IsOpen == false)
         {
             var factory = new ConnectionFactory();
+            X509Certificate2 certToDispose = null;
 
-            switch (connection.AuthenticationMethod)
+            try
             {
-                case AuthenticationMethod.URI:
-                    factory.Uri = new Uri(connection.Host);
-                    break;
-                case AuthenticationMethod.Host:
-                    if (!string.IsNullOrWhiteSpace(connection.Username) || !string.IsNullOrWhiteSpace(connection.Password))
-                    {
+                switch (connection.AuthenticationMethod)
+                {
+                    case AuthenticationMethod.URI:
+                        factory.Uri = new Uri(connection.Host);
+                        break;
+                    case AuthenticationMethod.Host:
+                        if (!string.IsNullOrWhiteSpace(connection.Username) || !string.IsNullOrWhiteSpace(connection.Password))
+                        {
+                            factory.UserName = connection.Username;
+                            factory.Password = connection.Password;
+                        }
+                        factory.HostName = connection.Host;
+
+                        if (connection.Port != 0) factory.Port = connection.Port;
+
+                        break;
+                    case AuthenticationMethod.Certificate:
+                        factory.HostName = connection.Host;
+                        if (connection.Port != 0)
+                            factory.Port = connection.Port;
+                        factory.Ssl.Enabled = true;
+                        factory.Ssl.ServerName = connection.Host;
+                        factory.Ssl.Version = connection.SslProtocol switch
+                        {
+                            SslProtocol.Tls12 => SslProtocols.Tls12,
+                            SslProtocol.Tls13 => SslProtocols.Tls13,
+                            _ => SslProtocols.None,
+                        };
+                        certToDispose = connection.CertificateSource switch
+                        {
+                            CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath,
+                                connection.ClientCertificatePassword),
+                            CertificateSource.Base64 => new X509Certificate2(
+                                Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
+                            CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes,
+                                connection.ClientCertificatePassword),
+                            CertificateSource.Store => LoadFromStore(connection.StoreThumbprint,
+                                connection.CertificateStoreLocation),
+                            _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                        };
+                        factory.Ssl.Certs = new X509Certificate2Collection(certToDispose);
+                        factory.AuthMechanisms = new IAuthMechanismFactory[]
+                        {
+                            new ExternalMechanismFactory()
+                        };
+
+                        break;
+                    case AuthenticationMethod.CertificateWithCredentials:
+                        factory.HostName = connection.Host;
+                        if (connection.Port != 0)
+                            factory.Port = connection.Port;
                         factory.UserName = connection.Username;
                         factory.Password = connection.Password;
-                    }
-                    factory.HostName = connection.Host;
+                        factory.Ssl.Enabled = true;
+                        factory.Ssl.ServerName = connection.Host;
+                        factory.Ssl.Version = connection.SslProtocol switch
+                        {
+                            SslProtocol.Tls12 => SslProtocols.Tls12,
+                            SslProtocol.Tls13 => SslProtocols.Tls13,
+                            _ => SslProtocols.None,
+                        };
+                        certToDispose = connection.CertificateSource switch
+                        {
+                            CertificateSource.File => new X509Certificate2(connection.ClientCertificatePath,
+                                connection.ClientCertificatePassword),
+                            CertificateSource.Base64 => new X509Certificate2(
+                                Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
+                            CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes,
+                                connection.ClientCertificatePassword),
+                            CertificateSource.Store => LoadFromStore(connection.StoreThumbprint,
+                                connection.CertificateStoreLocation),
+                            _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                        };
+                        factory.Ssl.Certs = new X509Certificate2Collection(certToDispose);
+                        break;
+                }
 
-                    if (connection.Port != 0) factory.Port = connection.Port;
+                if (connection.AuthenticationMethod != AuthenticationMethod.URI && !string.IsNullOrWhiteSpace(connection.VirtualHost))
+                    factory.VirtualHost = connection.VirtualHost;
 
-                    break;
+                if (connection.Timeout != 0) factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
+
+                connectionHelper.AMQPConnection = await factory.CreateConnectionAsync();
             }
-
-            if (connection.Timeout != 0) factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
-
-            connectionHelper.AMQPConnection = await factory.CreateConnectionAsync();
+            finally
+            {
+                certToDispose?.Dispose();
+            }
         }
 
         if (connectionHelper.AMQPModel == null || connectionHelper.AMQPModel.IsClosed)
             connectionHelper.AMQPModel = await connectionHelper.AMQPConnection.CreateChannelAsync();
     }
 
-    private static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Connection connection)
+    internal static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Connection connection)
     {
         // If no current connection, host name is not changed
         if (connectionHelper.AMQPConnection == null || connectionHelper.AMQPConnection.IsOpen == false)
@@ -173,9 +246,34 @@ public class RabbitMQ
                 var newUri = new Uri(connection.Host);
                 return (connectionHelper.AMQPConnection.Endpoint.HostName != newUri.Host);
             case AuthenticationMethod.Host:
+            case AuthenticationMethod.Certificate:
+            case AuthenticationMethod.CertificateWithCredentials:
                 return (connectionHelper.AMQPConnection.Endpoint.HostName != connection.Host);
             default:
                 throw new ArgumentException($"IsConnectionHostNameChanged: AuthenticationMethod missing.");
         }
+    }
+
+    [ExcludeFromCodeCoverage(Justification = "Unable to setup store on GitHub")]
+    private static X509Certificate2 LoadFromStore(string thumbprint, CertificateStoreLocation location)
+    {
+        var storeLocation = location switch
+        {
+            CertificateStoreLocation.LocalMachine => StoreLocation.LocalMachine,
+            _ => StoreLocation.CurrentUser,
+        };
+
+        using var store = new X509Store(StoreName.My, storeLocation);
+        store.Open(OpenFlags.ReadOnly);
+
+        var cert = store.Certificates
+            .Find(X509FindType.FindByThumbprint, thumbprint, validOnly: false)
+            .OfType<X509Certificate2>()
+            .FirstOrDefault();
+
+        if (cert == null)
+            throw new Exception($"Certificate with thumbprint {thumbprint} not found.");
+
+        return cert;
     }
 }
