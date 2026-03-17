@@ -141,16 +141,16 @@ public class Connection
     public string RoutingKey { get; set; } = "";
 
     /// <summary>
-    /// Timeout setting for connection attempts. Value 0 indicates that the default value for the attempts should be used. Set value in seconds.
-    /// </summary>
-    /// <example>60</example>
-    public int Timeout { get; set; }
-
-    /// <summary>
     /// RabbitMQ virtual host to connect to.
     /// </summary>
     /// <example>/</example>
     [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
     [DefaultValue("/")]
     public string VirtualHost { get; set; } = "/";
+
+    /// <summary>
+    /// Timeout setting for connection attempts. Value 0 indicates that the default value for the attempts should be used. Set value in seconds.
+    /// </summary>
+    /// <example>60</example>
+    public int Timeout { get; set; }
 }
