@@ -8,12 +8,11 @@ using System.Threading.Tasks;
 namespace Frends.RabbitMQ.Read.Tests;
 
 [TestClass]
-public class UnitTests
+public class UnitTests : TestBase
 {
     /// <summary>
-    /// You will need access to RabbitMQ queue, you can create it e.g. by running
-    /// docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123  rabbitmq:3.9-management
-    /// In that case URI would be amqp://agent:agent123@localhost:5672
+    /// You will need access to RabbitMQ queue
+    /// URI can be amqp://agent:agent123@localhost:5672
     /// Access UI from http://localhost:15672 username: agent, password: agent123
     /// </summary>
 
@@ -23,6 +22,12 @@ public class UnitTests
     private const string _queue = "queue";
     private const string _username = "agent";
     private const string _psw = "agent123";
+
+    [ClassInitialize]
+    public static void Init(TestContext testContext) => Initialize(testContext);
+
+    [ClassCleanup]
+    public static void Cleanup() => BaseCleanup();
 
     [TestInitialize]
     public async Task CreateExchangeAndQueue()

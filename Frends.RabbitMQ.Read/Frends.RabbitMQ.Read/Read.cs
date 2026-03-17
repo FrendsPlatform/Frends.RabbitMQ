@@ -224,6 +224,10 @@ public class RabbitMQ
 
                 connectionHelper.AMQPConnection = await factory.CreateConnectionAsync();
             }
+            catch (Exception ex)
+            {
+                throw new Exception($"Operation failed: {ex.Message}", ex);
+            }
             finally
             {
                 certToDispose?.Dispose();
