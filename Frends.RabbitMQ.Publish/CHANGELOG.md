@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## [1.9.0] - 2026-03-17
+### Fixed
+- Added missing `Text` attribute to the `VirtualHost` property in Connection parameters to make it automatically use the Text mode instead of Expression mode.
+
 ## [1.8.0] - 2026-02-23
 ### Added
 - Added CertificateWithCredentials authentication method that requires both a valid client certificate and username/password credentials to connect.
