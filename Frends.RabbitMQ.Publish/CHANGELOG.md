@@ -2,7 +2,7 @@
 
 ## [1.9.0] - 2026-03-17
 ### Fixed
-- Added missing `[DisplayFormat(DataFormatString = "Text")]` attribute to the `VirtualHost` property in Connection parameters.
+- Added missing `Text` attribute to the `VirtualHost` property in Connection parameters to make it automatically use the Text mode instead of Expression mode.
 
 ## [1.8.0] - 2026-02-23
 ### Added
