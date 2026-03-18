@@ -45,7 +45,7 @@ public class QuorumQueueTests : TestBase
     [TestCleanup]
     public async Task DeleteExchangeAndQueue()
     {
-        await Helper.DeleteQuorumQueue(_testUri, _queue, _exchange);
+        await Lib.Helper.DeleteQuorumQueue(_testUri, _queue, _exchange);
     }
 
     [TestMethod]

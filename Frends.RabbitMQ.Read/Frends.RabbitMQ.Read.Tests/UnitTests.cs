@@ -1,10 +1,7 @@
 using Frends.RabbitMQ.Read.Definitions;
-using Frends.RabbitMQ.Read.Tests.Lib;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
-using System.Reflection.PortableExecutable;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Read.Tests;
 
