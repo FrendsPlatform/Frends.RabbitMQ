@@ -12,6 +12,9 @@ public abstract class TestBase
     private static int refCount;
     private static bool isInitialized;
 
+    private static readonly string CertsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "certs");
+    private static readonly string ConfigsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "configs");
+
     [ClassInitialize]
     public static void Initialize(TestContext testContext)
     {
@@ -29,13 +32,25 @@ public abstract class TestBase
         if (!shouldInitialize) return;
 
         rabbitContainer = new ContainerBuilder()
-            .WithImage("rabbitmq:3.9-management")
+            .WithImage("rabbitmq:4.2.3-management")
             .WithName("test-rabbitmq")
+            .WithHostname("localhost")
+
+            .WithResourceMapping(Path.Combine(CertsDirPath, "ca_certificate.crt"), "/etc/rabbitmq/certs")
+            .WithResourceMapping(Path.Combine(CertsDirPath, "server_certificate.pem"), "/etc/rabbitmq/certs")
+            .WithResourceMapping(Path.Combine(CertsDirPath, "server_key.pem"), "/etc/rabbitmq/certs")
+            .WithResourceMapping(Path.Combine(ConfigsDirPath, "rabbitmq.conf"), "/etc/rabbitmq")
+            .WithResourceMapping(Path.Combine(ConfigsDirPath, "enabled_plugins"), "/etc/rabbitmq")
+
             .WithEnvironment("RABBITMQ_DEFAULT_USER", "agent")
             .WithEnvironment("RABBITMQ_DEFAULT_PASS", "agent123")
-            .WithPortBinding(5672, 5672) // AMQP
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(5672))
+
+            .WithPortBinding(5672, 5672)
+            .WithPortBinding(5671, true)
+
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged(".*Server startup complete.*"))
             .Build();
+
 
         InitializeAsync().GetAwaiter().GetResult();
     }
@@ -80,4 +95,6 @@ public abstract class TestBase
             await rabbitContainer.DisposeAsync();
         }
     }
+
+    protected static IContainer Container => rabbitContainer!;
 }

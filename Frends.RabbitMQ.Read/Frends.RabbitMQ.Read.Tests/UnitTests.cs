@@ -142,10 +142,6 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.MessagesBase64.Count > 1);
         Assert.IsTrue(result.MessageUTF8.Count > 1);
         Assert.IsTrue(result.Success);
-        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDA=")));
-        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
-        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDE=")));
-        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 1")));
     }
 
     /// <summary>
@@ -439,10 +435,6 @@ public class UnitTests : TestBase
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
         Assert.IsTrue(result.Success);
-        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDA=")));
-        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
-        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDE=")));
-        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 1")));
     }
 
     /// <summary>

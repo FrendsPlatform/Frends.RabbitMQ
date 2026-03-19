@@ -10,22 +10,21 @@ namespace Frends.RabbitMQ.Read.Tests;
 
 //To run those tests, ca_certificate.crt must be installed as trusted root certificate.
 [TestClass]
-public class CertificateTests
+public class CertificateTests : TestBase
 {
     private const string TestHost = "localhost";
     private const string Queue = "quorum";
     private const string Exchange = "exchange";
-    private static readonly string CertsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "certs");
-    private static readonly string ConfigsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "configs");
 
-    private static IContainer? rabbitContainer;
+    private static readonly string CertsDirPath = Path.Join(
+        Directory.GetCurrentDirectory(), "TestData", "certs");
 
     private static Connection DefaultConnection() => new()
     {
         Timeout = 30,
         AuthenticationMethod = AuthenticationMethod.Certificate,
         Host = TestHost,
-        Port = rabbitContainer.GetMappedPublicPort(5671),
+        Port = Container.GetMappedPublicPort(5671),
         SslProtocol = SslProtocol.None,
         QueueName = Queue,
         ExchangeName = "",
@@ -35,56 +34,17 @@ public class CertificateTests
     };
 
     [ClassInitialize]
-    public static void Init(TestContext testContext)
-    {
-        rabbitContainer = new ContainerBuilder()
-            .WithImage("rabbitmq:4.2.3-management")
-            .WithName("test-rabbitmq-ssl-read")
-            .WithHostname("localhost")
-            .WithResourceMapping(Path.Combine(CertsDirPath, "ca_certificate.crt"), "/etc/rabbitmq/certs")
-            .WithResourceMapping(Path.Combine(CertsDirPath, "server_certificate.pem"), "/etc/rabbitmq/certs")
-            .WithResourceMapping(Path.Combine(CertsDirPath, "server_key.pem"), "/etc/rabbitmq/certs")
-            .WithResourceMapping(Path.Combine(ConfigsDirPath, "rabbitmq.conf"), "/etc/rabbitmq")
-            .WithResourceMapping(Path.Combine(ConfigsDirPath, "enabled_plugins"), "/etc/rabbitmq")
-            .WithEnvironment("RABBITMQ_DEFAULT_USER", "agent")
-            .WithEnvironment("RABBITMQ_DEFAULT_PASS", "agent123")
-            .WithPortBinding(5671, true)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged(".*Server startup complete.*"))
-            .Build();
-
-        InitializeAsync().GetAwaiter().GetResult();
-    }
-
-    private static async Task InitializeAsync()
-    {
-        await rabbitContainer?.StartAsync()!;
-        await rabbitContainer.ExecAsync(new[]
-        {
-            "rabbitmqctl", "set_user_limits", "agent", "{\"max-connections\": 20}",
-        });
-    }
+    public static void Init(TestContext testContext) => Initialize(testContext);
 
     [ClassCleanup]
-    public static void Cleanup()
-    {
-        CleanupAsync().GetAwaiter().GetResult();
-    }
-
-    private static async Task CleanupAsync()
-    {
-        if (rabbitContainer != null)
-        {
-            await rabbitContainer.StopAsync();
-            await rabbitContainer.DisposeAsync();
-        }
-    }
+    public static void Cleanup() => BaseCleanup();
 
     [TestInitialize]
     public async Task CreateExchangeAndQueue()
     {
         var factory = new ConnectionFactory();
         factory.HostName = TestHost;
-        factory.Port = rabbitContainer.GetMappedPublicPort(5671);
+        factory.Port = Container.GetMappedPublicPort(5671);
         factory.Ssl.Enabled = true;
         factory.Ssl.ServerName = TestHost;
         factory.Ssl.Version = System.Security.Authentication.SslProtocols.None;
@@ -105,7 +65,7 @@ public class CertificateTests
     {
         var factory = new ConnectionFactory();
         factory.HostName = TestHost;
-        factory.Port = rabbitContainer.GetMappedPublicPort(5671);
+        factory.Port = Container.GetMappedPublicPort(5671);
         factory.Ssl.Enabled = true;
         factory.Ssl.ServerName = TestHost;
         factory.Ssl.Version = System.Security.Authentication.SslProtocols.None;
