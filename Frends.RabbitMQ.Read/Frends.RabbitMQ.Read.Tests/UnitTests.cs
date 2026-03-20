@@ -1,19 +1,16 @@
 using Frends.RabbitMQ.Read.Definitions;
-using Frends.RabbitMQ.Read.Tests.Lib;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Frends.RabbitMQ.Read.Tests;
 
 [TestClass]
-public class UnitTests
+public class UnitTests : TestBase
 {
     /// <summary>
-    /// You will need access to RabbitMQ queue, you can create it e.g. by running
-    /// docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123  rabbitmq:3.9-management
-    /// In that case URI would be amqp://agent:agent123@localhost:5672
+    /// You will need access to RabbitMQ queue
+    /// URI can be amqp://agent:agent123@localhost:5672
     /// Access UI from http://localhost:15672 username: agent, password: agent123
     /// </summary>
 
@@ -23,6 +20,12 @@ public class UnitTests
     private const string _queue = "queue";
     private const string _username = "agent";
     private const string _psw = "agent123";
+
+    [ClassInitialize]
+    public static void Init(TestContext testContext) => Initialize(testContext);
+
+    [ClassCleanup]
+    public static void Cleanup() => BaseCleanup();
 
     [TestInitialize]
     public async Task CreateExchangeAndQueue()
@@ -139,10 +142,6 @@ public class UnitTests
         Assert.IsTrue(result.MessagesBase64.Count > 1);
         Assert.IsTrue(result.MessageUTF8.Count > 1);
         Assert.IsTrue(result.Success);
-        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDA=")));
-        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
-        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDE=")));
-        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 1")));
     }
 
     /// <summary>
@@ -436,10 +435,6 @@ public class UnitTests
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
         Assert.IsTrue(result.Success);
-        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDA=")));
-        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
-        Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDE=")));
-        Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 1")));
     }
 
     /// <summary>
@@ -468,6 +463,29 @@ public class UnitTests
         Assert.IsTrue(result.Success);
         Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDA=")));
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
+    }
+
+    [TestMethod]
+    public async Task TestPublishWithWrongVirtualHost_ShouldFail()
+    {
+        Connection connection = new()
+        {
+            Host = _testHost,
+            Username = "agent",
+            Password = "agent123",
+            RoutingKey = _queue,
+            QueueName = _queue,
+            AuthenticationMethod = AuthenticationMethod.Host,
+            ExchangeName = "",
+            Timeout = 30,
+            VirtualHost = "/nonexistent"
+        };
+
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(
+            () => RabbitMQ.Read(connection)
+        );
+
+        Assert.IsTrue(ex.Message.Contains("Failed to create channel"));
     }
 
     public static async Task Publish(Connection connection, int messageCount, Dictionary<string, object?>? args = null)

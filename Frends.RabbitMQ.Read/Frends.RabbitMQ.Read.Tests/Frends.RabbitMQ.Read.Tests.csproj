@@ -17,10 +17,15 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
 	<PackageReference Include="RabbitMQ.Client" Version="7.1.2" />
+    <PackageReference Include="Testcontainers" Version="4.9.0"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Frends.RabbitMQ.Read\Frends.RabbitMQ.Read.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="TestData\**" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
 
 </Project>

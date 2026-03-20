@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.0] - 2026-03-17
+### Added
+- Added CertificateWithCredentials authentication method that requires both a valid client certificate and username/password credentials to connect.
+- Added Certificate authentication method for TLS client-certificate authentication with new enums (`CertificateSource`, `SslProtocol`, `CertificateStoreLocation`) and connection properties (`ClientCertificatePath`, `ClientCertificatePassword`, `CertificateBase64`, `CertificateBytes`, `StoreThumbprint`, `CertificateStoreLocation`, `SslProtocol`, `CertificateSource`).
+- Added VirtualHost field to Connection parameters to allow specifying a RabbitMQ virtual host. Defaults to "/".
+
 ## [2.0.0] - 2026-02-23
 
 ### Changed
