@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## [1.10.0] - 2026-04-13
+### Fixed
+- Added Options class with ThrowErrorOnFailure and ErrorMessageOnFailure fields to control error handling behavior.
+
 ## [1.9.0] - 2026-03-17
 ### Fixed
 - Added missing `Text` attribute to the `VirtualHost` property in Connection parameters to make it automatically use the Text mode instead of Expression mode.

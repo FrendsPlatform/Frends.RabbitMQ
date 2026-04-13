@@ -49,6 +49,8 @@ public class QuorumQueueTests : TestBase
             new() { Name = "X-Expiration", Value = "100" }, new() { Name = "X-MessageId", Value = "message id" },
             new() { Name = "Custom-Header", Value = "custom header" }
         };
+
+        options = new Options();
     }
 
     [TestCleanup]
