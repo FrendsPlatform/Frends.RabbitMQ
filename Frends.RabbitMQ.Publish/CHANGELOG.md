@@ -1,7 +1,7 @@
 ﻿# Changelog
 
 ## [1.10.0] - 2026-04-13
-### Fixed
+### Added
 - Added Options class with ThrowErrorOnFailure and ErrorMessageOnFailure fields to control error handling behavior.
 
 ## [1.9.0] - 2026-03-17
