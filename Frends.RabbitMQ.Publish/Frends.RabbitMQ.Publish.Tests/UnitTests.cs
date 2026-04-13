@@ -449,7 +449,7 @@ public class UnitTests : TestBase
 
         Input input = new() { DataString = "", InputType = InputType.String, Headers = null };
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() => RabbitMQ.Publish(input, connection, options, default));
+        var ex = await Assert.ThrowsAsync<Exception>(() => RabbitMQ.Publish(input, connection, options, default));
         Assert.AreEqual("Publish: Message data is missing.", ex.Message);
     }
 
