@@ -20,6 +20,7 @@ public class QuorumQueueTests : TestBase
     private const string _queue = "quorum";
     private const string _exchange = "exchange";
     private static Header[] _headers = Array.Empty<Header>();
+    private static Options? options;
 
     [ClassInitialize]
     public static void Init(TestContext testContext) => Initialize(testContext);
@@ -77,7 +78,7 @@ public class QuorumQueueTests : TestBase
         Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, CancellationToken.None);
         await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
@@ -114,7 +115,7 @@ public class QuorumQueueTests : TestBase
         };
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, CancellationToken.None);
         await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
@@ -145,7 +146,7 @@ public class QuorumQueueTests : TestBase
         Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, CancellationToken.None);
         await Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -179,7 +180,7 @@ public class QuorumQueueTests : TestBase
         input.Headers = null;
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, CancellationToken.None);
         await Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -206,7 +207,7 @@ public class QuorumQueueTests : TestBase
         Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, CancellationToken.None);
         await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
@@ -237,7 +238,7 @@ public class QuorumQueueTests : TestBase
         Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, CancellationToken.None);
         await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);

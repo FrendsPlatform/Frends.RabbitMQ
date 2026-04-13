@@ -21,6 +21,7 @@ public class UnitTests : TestBase
     private const string _queue = "quorum";
     private const string _exchange = "exchange";
     private static Header[] _headers = Array.Empty<Header>();
+    private static Options? options;
 
     [ClassInitialize]
     public static void Init(TestContext testContext) => Initialize(testContext);
@@ -81,7 +82,7 @@ public class UnitTests : TestBase
         Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, default);
         await Helper.ReadMessage(readValues, connection);
 
         Assert.IsTrue(!string.IsNullOrEmpty(readValues.Message));
@@ -149,7 +150,7 @@ public class UnitTests : TestBase
         };
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, default);
         await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
@@ -179,7 +180,7 @@ public class UnitTests : TestBase
         Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, default);
         await Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -213,7 +214,7 @@ public class UnitTests : TestBase
 
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, default);
         await Helper.ReadMessage(readValues, connection);
         Assert.IsNotNull(readValues.Message);
         Assert.AreEqual("test message", readValues.Message);
@@ -240,7 +241,7 @@ public class UnitTests : TestBase
         Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(input, connection, default);
+        var result = await RabbitMQ.Publish(input, connection, options, default);
         await Helper.ReadMessage(readValues, connection);
 
         Assert.IsNotNull(readValues.Message);
@@ -280,7 +281,7 @@ public class UnitTests : TestBase
                 {
                     try
                     {
-                        await RabbitMQ.Publish(input, connection, CancellationToken.None);
+                        await RabbitMQ.Publish(input, connection, options, CancellationToken.None);
                         Interlocked.Increment(ref success);
                     }
                     catch (Exception ex)
@@ -321,7 +322,7 @@ public class UnitTests : TestBase
         {
             connection.Timeout++;
             var readValues = new Helper.ReadValues();
-            var result = await RabbitMQ.Publish(input, connection, default);
+            var result = await RabbitMQ.Publish(input, connection, options, default);
             await Helper.ReadMessage(readValues, connection);
             Assert.AreEqual("test message", readValues.Message);
             Assert.AreEqual("String", result.DataFormat);
@@ -355,7 +356,7 @@ public class UnitTests : TestBase
         for (var i = 0; i < 30; i++)
         {
             var readValues = new Helper.ReadValues();
-            var result = await RabbitMQ.Publish(input, connection, default);
+            var result = await RabbitMQ.Publish(input, connection, options, default);
             await Helper.ReadMessage(readValues, connection);
             Assert.IsNotNull(readValues.Message);
             Assert.AreEqual("test message", readValues.Message);
@@ -390,7 +391,7 @@ public class UnitTests : TestBase
         for (var i = 0; i < 30; i++)
         {
             var readValues = new Helper.ReadValues();
-            var result = await RabbitMQ.Publish(input, connection, default);
+            var result = await RabbitMQ.Publish(input, connection, options, default);
             await Helper.ReadMessage(readValues, connection);
             Assert.IsNotNull(readValues.Message);
             Assert.AreEqual("test message", readValues.Message);
@@ -421,7 +422,7 @@ public class UnitTests : TestBase
 
         Input input = new() { DataString = "test message", InputType = InputType.String, Headers = null };
 
-        var ex = await Assert.ThrowsAsync<Exception>(() => RabbitMQ.Publish(input, connection, default));
+        var ex = await Assert.ThrowsAsync<Exception>(() => RabbitMQ.Publish(input, connection, options, default));
         Assert.AreEqual("Operation failed: None of the specified endpoints were reachable",
             ex.Message);
     }
@@ -446,7 +447,7 @@ public class UnitTests : TestBase
 
         Input input = new() { DataString = "", InputType = InputType.String, Headers = null };
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() => RabbitMQ.Publish(input, connection, default));
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => RabbitMQ.Publish(input, connection, options, default));
         Assert.AreEqual("Publish: Message data is missing.", ex.Message);
     }
 
@@ -472,9 +473,22 @@ public class UnitTests : TestBase
         Input input = new() { DataString = "test message", InputType = InputType.String, Headers = _headers };
 
         var ex = await Assert.ThrowsExceptionAsync<Exception>(
-            () => RabbitMQ.Publish(input, connection, default)
+            () => RabbitMQ.Publish(input, connection, options, default)
         );
 
         Assert.IsTrue(ex.Message.Contains("Failed to create channel"));
+    }
+
+    [TestMethod]
+    public async Task Should_Return_Failed_Result_When_ThrowErrorOnFailure_Is_False()
+    {
+        var options = new Options
+        {
+            ThrowErrorOnFailure = false
+        };
+
+        var result = await RabbitMQ.Publish(new Input(), new Connection(), options, CancellationToken.None);
+
+        Assert.IsFalse(result.Success, "Expected result.Success to be false");
     }
 }
