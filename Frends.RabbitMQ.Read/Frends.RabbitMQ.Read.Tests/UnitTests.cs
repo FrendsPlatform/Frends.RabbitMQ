@@ -20,6 +20,7 @@ public class UnitTests : TestBase
     private const string _queue = "queue";
     private const string _username = "agent";
     private const string _psw = "agent123";
+    private static Options? options;
 
     [ClassInitialize]
     public static void Init(TestContext testContext) => Initialize(testContext);
@@ -36,6 +37,7 @@ public class UnitTests : TestBase
         await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
         await channel.QueueDeclareAsync(_queue, durable: false, exclusive: false, autoDelete: false);
         await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
+        options = new Options();
     }
 
     [TestCleanup]
@@ -69,7 +71,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -133,7 +135,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 2);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         var test1 = result.MessagesBase64.Count;
         var test2 = result.MessageUTF8.Count;
@@ -163,7 +165,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -191,7 +193,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -218,7 +220,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -248,7 +250,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 2);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         var test1 = result.MessagesBase64.Count;
         var test2 = result.MessageUTF8.Count;
@@ -282,7 +284,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -309,7 +311,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -339,7 +341,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 2);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         var test1 = result.MessagesBase64.Count;
         var test2 = result.MessageUTF8.Count;
@@ -373,7 +375,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -400,7 +402,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -430,7 +432,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 2);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
@@ -456,7 +458,7 @@ public class UnitTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -482,10 +484,23 @@ public class UnitTests : TestBase
         };
 
         var ex = await Assert.ThrowsExceptionAsync<Exception>(
-            () => RabbitMQ.Read(connection)
+            () => RabbitMQ.Read(connection, options)
         );
 
         Assert.IsTrue(ex.Message.Contains("Failed to create channel"));
+    }
+
+    [TestMethod]
+    public async Task Should_Return_Failed_Result_When_ThrowErrorOnFailure_Is_False()
+    {
+        var options = new Options
+        {
+            ThrowErrorOnFailure = false
+        };
+
+        var result = await RabbitMQ.Read(new Connection(), options);
+
+        Assert.IsFalse(result.Success, "Expected result.Success to be false");
     }
 
     public static async Task Publish(Connection connection, int messageCount, Dictionary<string, object?>? args = null)
