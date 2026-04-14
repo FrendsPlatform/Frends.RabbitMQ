@@ -1,4 +1,5 @@
 ﻿using Frends.RabbitMQ.Publish.Definitions;
+using Frends.RabbitMQ.Publish.Helpers;
 using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
@@ -41,9 +42,10 @@ public static class RabbitMQ
     /// </summary>
     /// <param name="input">Input parameters</param>
     /// <param name="connection">Connection parameters.</param>
+    /// <param name="options">Additional parameters.</param>
     /// <param name="cancellationToken">CancellationToken given by Frends to terminate the Task.</param>
     /// <returns>Object { bool Success, string DataFormat, string DataString, byte[] DataByteArray, Dictionary&lt;string, string&gt; Headers }</returns>
-    public static async Task<Result> Publish([PropertyTab] Input input, [PropertyTab] Connection connection,
+    public static async Task<Result> Publish([PropertyTab] Input input, [PropertyTab] Connection connection, [PropertyTab] Options options,
         CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory();
@@ -202,6 +204,10 @@ public static class RabbitMQ
                 !string.IsNullOrEmpty(input.DataString) ? input.DataString : Encoding.UTF8.GetString(input.DataByteArray),
                 input.DataByteArray ?? Encoding.UTF8.GetBytes(input.DataString),
                 headers);
+        }
+        catch (Exception e)
+        {
+            return ErrorHandler.Handle(e, options.ThrowErrorOnFailure, options.ErrorMessageOnFailure);
         }
         finally
         {

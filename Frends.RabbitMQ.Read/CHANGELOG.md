@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.2.0] - 2026-04-14
+### Added
+- Added Options class with ThrowErrorOnFailure and ErrorMessageOnFailure fields to control error handling behavior.
+
 ## [2.1.0] - 2026-03-17
 ### Added
 - Added CertificateWithCredentials authentication method that requires both a valid client certificate and username/password credentials to connect.

@@ -22,6 +22,7 @@ public class QuorumQueueTests : TestBase
     private const string _queue = "quorumqueue";
     private const string _username = "agent";
     private const string _pws = "agent123";
+    private static Options? options;
 
     [ClassInitialize]
     public static void Init(TestContext testContext) => Initialize(testContext);
@@ -40,6 +41,7 @@ public class QuorumQueueTests : TestBase
         args["x-queue-type"] = "quorum";
         await channel.QueueDeclareAsync(_queue, durable: true, exclusive: false, autoDelete: false, arguments: args);
         await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
+        options = new Options();
     }
 
     [TestCleanup]
@@ -66,7 +68,7 @@ public class QuorumQueueTests : TestBase
         };
 
         await Publish(connection, 2);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
@@ -130,7 +132,7 @@ public class QuorumQueueTests : TestBase
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection);
+        var result = await RabbitMQ.Read(connection, options);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);

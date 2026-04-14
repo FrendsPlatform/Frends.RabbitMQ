@@ -37,6 +37,12 @@ public class Result
     /// <example>foo, bar</example>
     public Dictionary<string, string> Headers { get; private set; }
 
+    /// <summary>
+    /// Error that occurred during task execution.
+    /// </summary>
+    /// <example>object { string Message, Exception AdditionalInfo }</example>
+    public Error Error { get; set; }
+
     internal Result(bool success, string dataFormat, string dataString, byte[] dataByteArray, Dictionary<string, string> headers)
     {
         Success = success;
@@ -44,5 +50,11 @@ public class Result
         DataString = dataString;
         DataByteArray = dataByteArray;
         Headers = headers;
+    }
+
+    internal Result(bool success, Error error)
+    {
+        Success = success;
+        Error = error;
     }
 }

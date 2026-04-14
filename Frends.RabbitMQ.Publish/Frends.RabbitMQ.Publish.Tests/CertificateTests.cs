@@ -21,6 +21,7 @@ public class CertificateTests
     private static readonly string ConfigsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "configs");
 
     private static IContainer? rabbitContainer;
+    private static Options? options;
 
     private static Input DefaultInput() => new()
     {
@@ -118,6 +119,8 @@ public class CertificateTests
             new() { Name = "X-Expiration", Value = "100" }, new() { Name = "X-MessageId", Value = "message id" },
             new() { Name = "Custom-Header", Value = "custom header" }
         };
+
+        options = new Options();
     }
 
     [TestCleanup]
@@ -148,7 +151,7 @@ public class CertificateTests
         conn.ClientCertificatePassword = "pass";
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None);
+        var result = await RabbitMQ.Publish(DefaultInput(), conn, options, CancellationToken.None);
         await Helper.ReadMessage(readValues, conn);
 
         Assert.IsTrue(result.Success);
@@ -170,7 +173,7 @@ public class CertificateTests
         conn.ClientCertificatePassword = "pass";
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None);
+        var result = await RabbitMQ.Publish(DefaultInput(), conn, options, CancellationToken.None);
         await Helper.ReadMessage(readValues, conn);
 
         Assert.IsTrue(result.Success);
@@ -191,7 +194,7 @@ public class CertificateTests
         conn.ClientCertificatePassword = "pass";
 
         var readValues = new Helper.ReadValues();
-        var result = await RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None);
+        var result = await RabbitMQ.Publish(DefaultInput(), conn, options, CancellationToken.None);
         await Helper.ReadMessage(readValues, conn);
 
         Assert.IsTrue(result.Success);
@@ -213,7 +216,7 @@ public class CertificateTests
         conn.ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx");
         conn.ClientCertificatePassword = "pass";
 
-        var result = await RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None);
+        var result = await RabbitMQ.Publish(DefaultInput(), conn, options, CancellationToken.None);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual("test message", result.DataString);
@@ -231,7 +234,7 @@ public class CertificateTests
         conn.ClientCertificatePassword = "pass";
 
         var ex = await Assert.ThrowsExceptionAsync<Exception>(
-        () => RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None));
+        () => RabbitMQ.Publish(DefaultInput(), conn, options, CancellationToken.None));
 
         Assert.IsTrue(ex.Message.Contains("None of the specified endpoints were reachable"));
     }
@@ -248,7 +251,7 @@ public class CertificateTests
         conn.ClientCertificatePassword = "pass";
 
         var ex = await Assert.ThrowsExceptionAsync<Exception>(
-        () => RabbitMQ.Publish(DefaultInput(), conn, CancellationToken.None));
+        () => RabbitMQ.Publish(DefaultInput(), conn, options, CancellationToken.None));
 
         Assert.IsTrue(ex.Message.Contains("None of the specified endpoints were reachable"));
     }
