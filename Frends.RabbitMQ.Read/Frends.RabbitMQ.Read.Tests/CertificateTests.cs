@@ -18,6 +18,7 @@ public class CertificateTests : TestBase
 
     private static readonly string CertsDirPath = Path.Join(
         Directory.GetCurrentDirectory(), "TestData", "certs");
+    private static Options? options;
 
     private static Connection DefaultConnection() => new()
     {
@@ -58,6 +59,7 @@ public class CertificateTests : TestBase
         await channel.QueueDeclareAsync(Queue, durable: false, exclusive: false, autoDelete: false);
         await channel.QueueBindAsync(Queue, Exchange, routingKey: "");
         await PublishTestMessage(channel);
+        options = new Options();
     }
 
     [TestCleanup]
@@ -95,7 +97,7 @@ public class CertificateTests : TestBase
         conn.ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx");
         conn.ClientCertificatePassword = "pass";
 
-        var result = await RabbitMQ.Read(conn);
+        var result = await RabbitMQ.Read(conn, options);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -112,7 +114,7 @@ public class CertificateTests : TestBase
         conn.CertificateBase64 = base64Pfx;
         conn.ClientCertificatePassword = "pass";
 
-        var result = await RabbitMQ.Read(conn);
+        var result = await RabbitMQ.Read(conn, options);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -128,7 +130,7 @@ public class CertificateTests : TestBase
         conn.CertificateBytes = pfxBytes;
         conn.ClientCertificatePassword = "pass";
 
-        var result = await RabbitMQ.Read(conn);
+        var result = await RabbitMQ.Read(conn, options);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -146,7 +148,7 @@ public class CertificateTests : TestBase
         conn.ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx");
         conn.ClientCertificatePassword = "pass";
 
-        var result = await RabbitMQ.Read(conn);
+        var result = await RabbitMQ.Read(conn, options);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -165,7 +167,7 @@ public class CertificateTests : TestBase
         conn.ClientCertificatePassword = "pass";
 
         var ex = await Assert.ThrowsExceptionAsync<Exception>(
-            () => RabbitMQ.Read(conn));
+            () => RabbitMQ.Read(conn, options));
 
         Assert.IsTrue(ex.Message.Contains("None of the specified endpoints were reachable"));
     }
@@ -182,7 +184,7 @@ public class CertificateTests : TestBase
         conn.ClientCertificatePassword = "pass";
 
         var ex = await Assert.ThrowsExceptionAsync<Exception>(
-            () => RabbitMQ.Read(conn));
+            () => RabbitMQ.Read(conn, options));
 
         Assert.IsTrue(ex.Message.Contains("None of the specified endpoints were reachable"));
     }
