@@ -2,7 +2,7 @@
 
 ## [2.3.0] - 2026-04-26
 ### Added
-- Added new property `Connection.AllowInvalidCertificates` to allow invalid certificates.
+- Added new property `Connection.AllowInvalidCertificate` to allow invalid certificates.
 
 ## [2.2.0] - 2026-04-14
 ### Added
