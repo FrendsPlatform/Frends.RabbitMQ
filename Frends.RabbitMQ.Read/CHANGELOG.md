@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.3.0] - 2026-04-26
+### Added
+- Added new property `Connection.AllowInvalidCertificates` to allow invalid certificates.
+
 ## [2.2.0] - 2026-04-14
 ### Added
 - Added Options class with ThrowErrorOnFailure and ErrorMessageOnFailure fields to control error handling behavior.

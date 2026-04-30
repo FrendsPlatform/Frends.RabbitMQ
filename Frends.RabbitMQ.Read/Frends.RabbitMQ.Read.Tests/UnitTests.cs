@@ -10,16 +10,16 @@ public class UnitTests : TestBase
 {
     /// <summary>
     /// You will need access to RabbitMQ queue
-    /// URI can be amqp://agent:agent123@localhost:5672
+    /// URI is resolved from the RabbitMQ test container's mapped AMQP port.
     /// Access UI from http://localhost:15672 username: agent, password: agent123
     /// </summary>
 
-    private const string _testUri = "amqp://agent:agent123@localhost:5672";
-    private const string _testHost = "localhost";
+    private static string _testUri => GetRabbitUri();
+    private const string _testHost = RabbitHostName;
     private const string _exchange = "exchange";
     private const string _queue = "queue";
-    private const string _username = "agent";
-    private const string _psw = "agent123";
+    private const string _username = RabbitUsername;
+    private const string _psw = RabbitPassword;
     private static Options? options;
 
     [ClassInitialize]
@@ -31,7 +31,7 @@ public class UnitTests : TestBase
     [TestInitialize]
     public async Task CreateExchangeAndQueue()
     {
-        var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
+        var factory = new ConnectionFactory { Uri = new Uri(GetRabbitUri()) };
         using var connection = await factory.CreateConnectionAsync();
         using var channel = await connection.CreateChannelAsync();
         await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
@@ -43,7 +43,7 @@ public class UnitTests : TestBase
     [TestCleanup]
     public async Task DeleteExchangeAndQueue()
     {
-        var factory = new ConnectionFactory { Uri = new Uri(_testUri) };
+        var factory = new ConnectionFactory { Uri = new Uri(GetRabbitUri()) };
         using var connection = await factory.CreateConnectionAsync();
         using var channel = await connection.CreateChannelAsync();
         await channel.QueueDeleteAsync(_queue, false, false);
@@ -59,6 +59,7 @@ public class UnitTests : TestBase
         Connection connection = new()
         {
             Host = _testHost,
+            Port = GetRabbitPort(),
             Username = _username,
             Password = _psw,
             RoutingKey = _queue,
@@ -123,6 +124,7 @@ public class UnitTests : TestBase
         Connection connection = new()
         {
             Host = _testHost,
+            Port = GetRabbitPort(),
             Username = _username,
             Password = _psw,
             RoutingKey = _queue,
@@ -208,6 +210,7 @@ public class UnitTests : TestBase
         Connection connection = new()
         {
             Host = _testHost,
+            Port = GetRabbitPort(),
             Username = _username,
             Password = _psw,
             RoutingKey = _queue,
@@ -238,6 +241,7 @@ public class UnitTests : TestBase
         Connection connection = new()
         {
             Host = _testHost,
+            Port = GetRabbitPort(),
             Username = _username,
             Password = _psw,
             RoutingKey = _queue,
@@ -299,6 +303,7 @@ public class UnitTests : TestBase
         Connection connection = new()
         {
             Host = _testHost,
+            Port = GetRabbitPort(),
             Username = _username,
             Password = _psw,
             RoutingKey = _queue,
@@ -329,6 +334,7 @@ public class UnitTests : TestBase
         Connection connection = new()
         {
             Host = _testHost,
+            Port = GetRabbitPort(),
             Username = _username,
             Password = _psw,
             RoutingKey = _queue,
@@ -390,6 +396,7 @@ public class UnitTests : TestBase
         Connection connection = new()
         {
             Host = _testHost,
+            Port = GetRabbitPort(),
             Username = _username,
             Password = _psw,
             RoutingKey = _queue,
@@ -420,6 +427,7 @@ public class UnitTests : TestBase
         Connection connection = new()
         {
             Host = _testHost,
+            Port = GetRabbitPort(),
             Username = _username,
             Password = _psw,
             RoutingKey = _queue,
@@ -473,6 +481,7 @@ public class UnitTests : TestBase
         Connection connection = new()
         {
             Host = _testHost,
+            Port = GetRabbitPort(),
             Username = "agent",
             Password = "agent123",
             RoutingKey = _queue,
