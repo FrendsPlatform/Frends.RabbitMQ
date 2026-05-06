@@ -180,4 +180,13 @@ public class Connection
     /// <example>60</example>
     [DefaultValue(30)]
     public int ConnectionExpirationSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Decide if the connection be allowed to use an invalid certificate.
+    /// NOTE: This is not recommended for production environments as it can expose the connection to man-in-the-middle attacks.
+    /// Use with caution and only in testing or development scenarios where security is not a concern.
+    /// </summary>
+    /// <example>false</example>
+    [DefaultValue(false)]
+    public bool AllowInvalidCertificate { get; set; }
 }

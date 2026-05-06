@@ -77,6 +77,8 @@ public static class RabbitMQ
                         factory.Port = connection.Port;
                     factory.Ssl.Enabled = true;
                     factory.Ssl.ServerName = connection.Host;
+                    if (connection.AllowInvalidCertificate)
+                        factory.Ssl.CertificateValidationCallback = (_, _, _, _) => true;
                     factory.Ssl.Version = connection.SslProtocol switch
                     {
                         SslProtocol.Tls12 => SslProtocols.Tls12,
@@ -110,6 +112,8 @@ public static class RabbitMQ
                     factory.Password = connection.Password;
                     factory.Ssl.Enabled = true;
                     factory.Ssl.ServerName = connection.Host;
+                    if (connection.AllowInvalidCertificate)
+                        factory.Ssl.CertificateValidationCallback = (_, _, _, _) => true;
                     factory.Ssl.Version = connection.SslProtocol switch
                     {
                         SslProtocol.Tls12 => SslProtocols.Tls12,
@@ -396,7 +400,7 @@ public static class RabbitMQ
         }
         else if (connection.AuthenticationMethod == AuthenticationMethod.Certificate)
         {
-            key += $":cert:{connection.Port}:{connection.CertificateSource}";
+            key += $":cert:{connection.Port}:{connection.CertificateSource}:{connection.AllowInvalidCertificate}";
             key += connection.CertificateSource switch
             {
                 CertificateSource.File => $":{connection.ClientCertificatePath}",
@@ -408,7 +412,7 @@ public static class RabbitMQ
         }
         else if (connection.AuthenticationMethod == AuthenticationMethod.CertificateWithCredentials)
         {
-            key += $":certcreds:{connection.Port}:{connection.Username}:{connection.Password}:{connection.CertificateSource}";
+            key += $":certcreds:{connection.Port}:{connection.Username}:{connection.Password}:{connection.CertificateSource}:{connection.AllowInvalidCertificate}";
             key += connection.CertificateSource switch
             {
                 CertificateSource.File => $":{connection.ClientCertificatePath}",

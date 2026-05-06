@@ -39,7 +39,8 @@ public class Connection
     /// Username to use when authenticating to the server.
     /// </summary>
     /// <example>foo</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.CertificateWithCredentials)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host,
+        AuthenticationMethod.CertificateWithCredentials)]
     [DisplayFormat(DataFormatString = "Text")]
     public string Username { get; set; } = "";
 
@@ -47,7 +48,8 @@ public class Connection
     /// Password to use when authenticating to the server.
     /// </summary>
     /// <example>bar</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.CertificateWithCredentials)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host,
+        AuthenticationMethod.CertificateWithCredentials)]
     [PasswordPropertyText]
     [DisplayFormat(DataFormatString = "Text")]
     public string Password { get; set; } = "";
@@ -56,21 +58,24 @@ public class Connection
     /// The port to connect on. Value 0 indicates that the default port for the protocol should be used.
     /// </summary>
     /// <example>0</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.Certificate,
+        AuthenticationMethod.CertificateWithCredentials)]
     public int Port { get; set; } = 0;
 
     /// <summary>
     /// Specifies the SSL protocol used for the RabbitMQ connection. Use SslProtocol.None to allow the operating system to negotiate the most secure protocol available.
     /// </summary>
     /// <example>SslProtocol.None</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate,
+        AuthenticationMethod.CertificateWithCredentials)]
     public SslProtocol SslProtocol { get; set; }
 
     /// <summary>
     /// Specifies the source from which the client certificate should be loaded.
     /// </summary>
     /// <example>CertificateSource.File</example>
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Certificate,
+        AuthenticationMethod.CertificateWithCredentials)]
     public CertificateSource CertificateSource { get; set; }
 
     /// <summary>
@@ -84,7 +89,8 @@ public class Connection
     /// Password required to decrypt the certificate file. Needed for password‑protected .pfx/.p12 certificates.
     /// </summary>
     /// <example>MyStrongPassword123!</example>
-    [UIHint(nameof(CertificateSource), "", CertificateSource.File, CertificateSource.RawBytes, CertificateSource.Base64)]
+    [UIHint(nameof(CertificateSource), "", CertificateSource.File, CertificateSource.RawBytes,
+        CertificateSource.Base64)]
     [PasswordPropertyText]
     [DisplayFormat(DataFormatString = "Text")]
     public string ClientCertificatePassword { get; set; }
@@ -145,7 +151,8 @@ public class Connection
     /// </summary>
     /// <example>/</example>
     [DisplayFormat(DataFormatString = "Text")]
-    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.Certificate, AuthenticationMethod.CertificateWithCredentials)]
+    [UIHint(nameof(AuthenticationMethod), "", AuthenticationMethod.Host, AuthenticationMethod.Certificate,
+        AuthenticationMethod.CertificateWithCredentials)]
     [DefaultValue("/")]
     public string VirtualHost { get; set; } = "/";
 
@@ -154,4 +161,13 @@ public class Connection
     /// </summary>
     /// <example>60</example>
     public int Timeout { get; set; }
+
+    /// <summary>
+    /// Decide if the connection be allowed to use an invalid certificate.
+    /// NOTE: This is not recommended for production environments as it can expose the connection to man-in-the-middle attacks.
+    /// Use with caution and only in testing or development scenarios where security is not a concern.
+    /// </summary>
+    /// <example>false</example>
+    [DefaultValue(false)]
+    public bool AllowInvalidCertificate { get; set; }
 }

@@ -21,6 +21,7 @@ public class CertificateTests
     private static readonly string ConfigsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "configs");
 
     private static IContainer? rabbitContainer;
+    private static IContainer? rabbitAllowInvalidContainer;
     private static Options? options;
 
     private static Input DefaultInput() => new()
@@ -64,6 +65,22 @@ public class CertificateTests
             .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged(".*Server startup complete.*"))
             .Build();
 
+        rabbitAllowInvalidContainer = new ContainerBuilder()
+            .WithImage("rabbitmq:4.2.3-management")
+            .WithName("test-rabbitmq-ssl-allow-invalid")
+            .WithHostname("localhost")
+            .WithResourceMapping(Path.Combine(CertsDirPath, "ca_certificate.crt"), "/etc/rabbitmq/certs")
+            .WithResourceMapping(Path.Combine(CertsDirPath, "server_certificate.pem"), "/etc/rabbitmq/certs")
+            .WithResourceMapping(Path.Combine(CertsDirPath, "server_key.pem"), "/etc/rabbitmq/certs")
+            .WithResourceMapping(Path.Combine(ConfigsDirPath, "rabbitmq_allow_invalid.conf"), "/etc/rabbitmq")
+            .WithResourceMapping(Path.Combine(ConfigsDirPath, "enabled_plugins"), "/etc/rabbitmq")
+            .WithEnvironment("RABBITMQ_DEFAULT_USER", "agent")
+            .WithEnvironment("RABBITMQ_DEFAULT_PASS", "agent123")
+            .WithEnvironment("RABBITMQ_CONFIG_FILE", "/etc/rabbitmq/rabbitmq_allow_invalid")
+            .WithPortBinding(5671, true)
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged(".*Server startup complete.*"))
+            .Build();
+
         InitializeAsync().GetAwaiter().GetResult();
     }
 
@@ -71,6 +88,12 @@ public class CertificateTests
     {
         await rabbitContainer?.StartAsync()!;
         await rabbitContainer.ExecAsync(new[]
+        {
+            "rabbitmqctl", "set_user_limits", "agent", "{\"max-connections\": 20}",
+        });
+
+        await rabbitAllowInvalidContainer?.StartAsync()!;
+        await rabbitAllowInvalidContainer.ExecAsync(new[]
         {
             "rabbitmqctl", "set_user_limits", "agent", "{\"max-connections\": 20}",
         });
@@ -88,6 +111,12 @@ public class CertificateTests
         {
             await rabbitContainer.StopAsync();
             await rabbitContainer.DisposeAsync();
+        }
+
+        if (rabbitAllowInvalidContainer != null)
+        {
+            await rabbitAllowInvalidContainer.StopAsync();
+            await rabbitAllowInvalidContainer.DisposeAsync();
         }
     }
 
@@ -254,5 +283,25 @@ public class CertificateTests
         () => RabbitMQ.Publish(DefaultInput(), conn, options, CancellationToken.None));
 
         Assert.IsTrue(ex.Message.Contains("None of the specified endpoints were reachable"));
+    }
+
+    [TestMethod]
+    public async Task AllowInvalidCertificate_WithUntrustedCert_ShouldSucceed()
+    {
+
+        var conn = DefaultConnection();
+        conn.AuthenticationMethod = AuthenticationMethod.CertificateWithCredentials;
+        conn.Username = "agent";
+        conn.Password = "agent123";
+        conn.CertificateSource = CertificateSource.File;
+        conn.ClientCertificatePath = Path.Join(CertsDirPath, "rogue_client_certificate.pfx");
+        conn.ClientCertificatePassword = "pass";
+        conn.AllowInvalidCertificate = true;
+        conn.Port = rabbitAllowInvalidContainer!.GetMappedPublicPort(5671);
+
+        var result = await RabbitMQ.Publish(DefaultInput(), conn, options, CancellationToken.None);
+
+        Assert.IsTrue(result.Success);
+        Assert.AreEqual("test message", result.DataString);
     }
 }

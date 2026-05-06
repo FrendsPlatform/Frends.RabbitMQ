@@ -76,6 +76,8 @@ namespace Frends.RabbitMQ.Read
                             ConfigureCommonSsl(factory, connection);
                             certToDispose = LoadCertificate(connection);
                             factory.Ssl.Certs = new X509Certificate2Collection(certToDispose);
+                            if (connection.AllowInvalidCertificate)
+                                factory.Ssl.CertificateValidationCallback = (_, _, _, _) => true;
                             factory.AuthMechanisms = new IAuthMechanismFactory[] { new ExternalMechanismFactory() };
                             break;
 
@@ -85,6 +87,8 @@ namespace Frends.RabbitMQ.Read
                             factory.Password = connection.Password;
                             certToDispose = LoadCertificate(connection);
                             factory.Ssl.Certs = new X509Certificate2Collection(certToDispose);
+                            if (connection.AllowInvalidCertificate)
+                                factory.Ssl.CertificateValidationCallback = (_, _, _, _) => true;
                             break;
                     }
 
