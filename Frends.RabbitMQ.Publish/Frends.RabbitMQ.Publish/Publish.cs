@@ -296,9 +296,12 @@ public static class RabbitMQ
         cancellationToken.ThrowIfCancellationRequested();
         IChannel channel = null;
 
+        var confirmOptions = new CreateChannelOptions(
+            publisherConfirmationsEnabled: true,
+            publisherConfirmationTrackingEnabled: true);
         try
         {
-            channel = await conn.CreateChannelAsync(cancellationToken: cancellationToken);
+            channel = await conn.CreateChannelAsync(confirmOptions, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -307,7 +310,8 @@ public static class RabbitMQ
                 conn = await GetRabbitMQConnection(connection, factory, cancellationToken, true);
 
                 if (conn == null) throw new Exception("FAIL! Failed to create new connection for channel.", ex);
-                channel = await conn.CreateChannelAsync(cancellationToken: cancellationToken);
+
+                channel = await conn.CreateChannelAsync(confirmOptions, cancellationToken);
 
                 if (channel == null) throw new Exception("FAIL! Failed to create new channel.", ex);
             }
