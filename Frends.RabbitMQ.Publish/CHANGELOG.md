@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## [1.12.0] - 2026-08-17
+### Changed
+- Updated target framework from .NET 6 to .NET 8.
+
 ## [1.11.0] - 2026-04-26
 ### Added
 - Added new property `Connection.AllowInvalidCertificate` to allow invalid certificates.
