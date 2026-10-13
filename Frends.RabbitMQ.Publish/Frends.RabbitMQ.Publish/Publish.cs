@@ -142,7 +142,7 @@ public static class RabbitMQ
             if (connection.Timeout != 0)
                 factory.RequestedConnectionTimeout = TimeSpan.FromSeconds(connection.Timeout);
 
-            await using var channel = await GetRabbitMQChannel(connection, factory, cancellationToken);
+            await using var channel = await GetRabbitMQChannel(connection, options, factory, cancellationToken);
 
             var dataType = input.InputType.Equals(InputType.ByteArray) ? "ByteArray" : "String";
             var data = input.InputType.Equals(InputType.ByteArray)
@@ -289,7 +289,7 @@ public static class RabbitMQ
             basicProperties.Headers = messageHeaders;
     }
 
-    private static async Task<IChannel> GetRabbitMQChannel(Connection connection, ConnectionFactory factory,
+    private static async Task<IChannel> GetRabbitMQChannel(Connection connection, Options options, ConnectionFactory factory,
         CancellationToken cancellationToken)
     {
         var conn = await GetRabbitMQConnection(connection, factory, cancellationToken);
@@ -297,8 +297,8 @@ public static class RabbitMQ
         IChannel channel = null;
 
         var confirmOptions = new CreateChannelOptions(
-            publisherConfirmationsEnabled: true,
-            publisherConfirmationTrackingEnabled: true);
+            publisherConfirmationsEnabled: options.PublisherConfirmationsEnabled,
+            publisherConfirmationTrackingEnabled: options.PublisherConfirmationTrackingEnabled);
         try
         {
             channel = await conn.CreateChannelAsync(confirmOptions, cancellationToken);
