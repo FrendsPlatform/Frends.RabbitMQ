@@ -22,4 +22,18 @@ public class Options
     [DisplayFormat(DataFormatString = "Text")]
     [DefaultValue("")]
     public string ErrorMessageOnFailure { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Internal channel settings from RabbitMQ Client
+    /// </summary>
+    /// <example>False</example>
+    [DefaultValue(false)]
+    public bool PublisherConfirmationsEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Internal channel settings from RabbitMQ Client
+    /// </summary>
+    /// <example>False</example>
+    [DefaultValue(false)]
+    public bool PublisherConfirmationTrackingEnabled { get; set; } = false;
 }

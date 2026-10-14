@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## [1.13.0] - 2026-10-13
+### Added
+- Add options to set up RabbitMQ channel
+
 ## [1.12.0] - 2026-08-17
 ### Changed
 - Updated target framework from .NET 6 to .NET 8.
