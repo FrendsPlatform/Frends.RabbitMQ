@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-
-namespace Frends.RabbitMQ.Read.Definitions;
+﻿namespace Frends.RabbitMQ.Read.Definitions;
 
 /// <summary>
 /// Read result(s).
@@ -14,17 +12,15 @@ public class Result
         MessageUTF8 = messageUTF8;
     }
 
-    internal Result(bool success, Error error)
+    internal Result()
     {
-        Success = success;
-        Error = error;
     }
 
     /// <summary>
     /// Read status. There was no messages to read if MessageUTF8 and MessagesBase64 are empty but Success=true.
     /// </summary>
     /// <example>true</example>
-    public bool Success { get; private set; }
+    public bool Success { get; internal set; }
 
     /// <summary>
     /// Message in Base64 format.

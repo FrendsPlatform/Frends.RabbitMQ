@@ -1,4 +1,4 @@
-using System.Security.Cryptography.X509Certificates;
+﻿using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Frends.RabbitMQ.Read.Definitions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -6,7 +6,6 @@ using RabbitMQ.Client;
 
 namespace Frends.RabbitMQ.Read.Tests;
 
-// To run those tests, ca_certificate.crt must be installed as a trusted root certificate.
 [TestClass]
 public class CertificateTests : TestBase
 {
@@ -14,7 +13,9 @@ public class CertificateTests : TestBase
     private const string Exchange = "exchange";
 
     private static readonly string CertsDirPath = Path.Join(
-        Directory.GetCurrentDirectory(), "TestData", "certs");
+        Directory.GetCurrentDirectory(),
+        "TestData",
+        "certs");
 
     private static Options? options;
 
@@ -48,7 +49,7 @@ public class CertificateTests : TestBase
         conn.ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx");
         conn.ClientCertificatePassword = "pass";
 
-        var result = await RabbitMQ.Read(conn, options);
+        var result = await Read(conn);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -65,7 +66,7 @@ public class CertificateTests : TestBase
         conn.CertificateBase64 = base64Pfx;
         conn.ClientCertificatePassword = "pass";
 
-        var result = await RabbitMQ.Read(conn, options);
+        var result = await Read(conn);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -81,7 +82,7 @@ public class CertificateTests : TestBase
         conn.CertificateBytes = pfxBytes;
         conn.ClientCertificatePassword = "pass";
 
-        var result = await RabbitMQ.Read(conn, options);
+        var result = await Read(conn);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -99,7 +100,7 @@ public class CertificateTests : TestBase
         conn.ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx");
         conn.ClientCertificatePassword = "pass";
 
-        var result = await RabbitMQ.Read(conn, options);
+        var result = await Read(conn);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -117,7 +118,7 @@ public class CertificateTests : TestBase
         conn.ClientCertificatePath = Path.Join(CertsDirPath, "client_certificate.pfx");
         conn.ClientCertificatePassword = "pass";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => RabbitMQ.Read(conn, options));
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Read(conn));
 
         Assert.IsTrue(ex.Message.Contains("None of the specified endpoints were reachable"));
     }
@@ -133,7 +134,7 @@ public class CertificateTests : TestBase
         conn.ClientCertificatePath = Path.Join(CertsDirPath, "rogue_client_certificate.pfx");
         conn.ClientCertificatePassword = "pass";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => RabbitMQ.Read(conn, options));
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Read(conn));
 
         Assert.IsTrue(ex.Message.Contains("None of the specified endpoints were reachable"));
     }
@@ -151,7 +152,7 @@ public class CertificateTests : TestBase
         conn.AllowInvalidCertificate = true;
         conn.Port = GetRabbitAllowInvalidSslPort();
 
-        var result = await RabbitMQ.Read(conn, options);
+        var result = await Read(conn);
 
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -205,11 +206,6 @@ public class CertificateTests : TestBase
         Host = RabbitHostName,
         Port = GetRabbitSslPort(),
         SslProtocol = SslProtocol.None,
-        QueueName = Queue,
-        ExchangeName = string.Empty,
-        RoutingKey = Queue,
-        AckType = AckType.AutoAck,
-        ReadMessageCount = 1,
     };
 
     private static async Task InitializeContainerAsync(ConnectionFactory factory)
@@ -241,4 +237,15 @@ public class CertificateTests : TestBase
             basicProperties: props,
             body: body);
     }
+
+    private static Task<Result> Read(Connection connection) =>
+        RabbitMQ.Read(
+            new Input
+            {
+                QueueName = Queue,
+                AckType = AckType.AutoAck,
+                ReadMessageCount = 1,
+            },
+            connection,
+            options);
 }

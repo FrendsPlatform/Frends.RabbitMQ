@@ -37,7 +37,7 @@ public class QuorumQueueTests : TestBase
         args.Add("x-queue-type", "quorum");
 
         await connectionHelper.AMQPModel.QueueDeclareAsync(
-            queue: connection.QueueName,
+            queue: Queue,
             durable: true,
             exclusive: false,
             autoDelete: false,
@@ -66,7 +66,7 @@ public class QuorumQueueTests : TestBase
         {
             await connectionHelper.AMQPModel.BasicPublishAsync(
                 exchange: Exchange,
-                routingKey: connection.RoutingKey,
+                routingKey: Queue,
                 mandatory: true,
                 basicProperties: basicProperties,
                 body: Encoding.UTF8.GetBytes(message + " " + i));
@@ -102,17 +102,11 @@ public class QuorumQueueTests : TestBase
             Port = GetRabbitPort(),
             Username = Username,
             Password = Pws,
-            RoutingKey = Queue,
-            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
-            ExchangeName = Exchange,
-
-            AckType = AckType.AutoAck,
-            ReadMessageCount = 2,
         };
 
         await Publish(connection, 2);
-        var result = await RabbitMQ.Read(connection, options);
+        var result = await Read(connection, 2);
 
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
@@ -166,17 +160,11 @@ public class QuorumQueueTests : TestBase
         Connection connection = new()
         {
             Host = TestUri,
-            RoutingKey = Queue,
-            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.URI,
-            ExchangeName = null,
-
-            AckType = AckType.AutoAck,
-            ReadMessageCount = 1,
         };
 
         await Publish(connection, 1);
-        var result = await RabbitMQ.Read(connection, options);
+        var result = await Read(connection);
 
         Assert.AreEqual(1, result.MessagesBase64.Count);
         Assert.AreEqual(1, result.MessageUTF8.Count);
@@ -184,4 +172,15 @@ public class QuorumQueueTests : TestBase
         Assert.IsTrue(result.MessagesBase64.Any(x => x.Data.Equals("VGVzdCBtZXNzYWdlIDA=")));
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
     }
+
+    private static Task<Result> Read(Connection connection, int readMessageCount = 1) =>
+        RabbitMQ.Read(
+            new Input
+            {
+                QueueName = Queue,
+                AckType = AckType.AutoAck,
+                ReadMessageCount = readMessageCount,
+            },
+            connection,
+            options);
 }

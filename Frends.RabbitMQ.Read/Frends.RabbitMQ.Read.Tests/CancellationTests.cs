@@ -7,14 +7,15 @@ namespace Frends.RabbitMQ.Read.Tests;
 public class CancellationTests
 {
     [TestMethod]
-    public async Task ReadWithCanceledTokenReturnsFailureWhenThrowingDisabled()
+    public async Task ReadWithCanceledTokenThrowsEvenWhenThrowingDisabled()
     {
         using var source = new CancellationTokenSource();
         await source.CancelAsync();
 
-        var result = await RabbitMQ.Read(new Input(), new Options { ThrowErrorOnFailure = false }, source.Token);
-
-        Assert.IsFalse(result.Success);
-        Assert.IsInstanceOfType<OperationCanceledException>(result.Error.AdditionalInfo);
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => RabbitMQ.Read(
+            new Input(),
+            new Connection(),
+            new Options { ThrowErrorOnFailure = false },
+            source.Token));
     }
 }

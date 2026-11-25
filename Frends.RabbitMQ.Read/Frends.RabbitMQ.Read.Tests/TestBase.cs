@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -34,6 +35,8 @@ public abstract class TestBase
         }
 
         if (!shouldInitialize) return;
+
+        TrustTestCertificateAuthority();
 
         rabbitContainer = new ContainerBuilder()
             .WithImage("rabbitmq:4.2.3-management")
@@ -105,6 +108,25 @@ public abstract class TestBase
         if (!shouldCleanup) return;
 
         CleanupAsync().GetAwaiter().GetResult();
+    }
+
+    // Makes the test CA trusted for this process only, so no manual OS-level setup is needed.
+    private static void TrustTestCertificateAuthority()
+    {
+        var caPath = Path.Combine(CertsDirPath, "ca_certificate.crt");
+
+        if (OperatingSystem.IsWindows())
+        {
+            using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadWrite);
+            using var ca = new X509Certificate2(caPath);
+            if (!store.Certificates.Contains(ca)) store.Add(ca);
+        }
+        else
+        {
+            // .NET reads this lazily on first chain build, so it must be set before any TLS connection.
+            Environment.SetEnvironmentVariable("SSL_CERT_FILE", caPath);
+        }
     }
 
     private static async Task InitializeAsync()

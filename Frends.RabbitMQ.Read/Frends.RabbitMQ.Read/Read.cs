@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Frends.RabbitMQ.Read.Definitions;
 using Frends.RabbitMQ.Read.Helpers;
 
@@ -18,11 +14,16 @@ public static class RabbitMQ
     /// Read message(s) from RabbitMQ queue. Message data is byte[] encoded to base64 and UTF8 strings.
     /// [Documentation](https://tasks.frends.com/tasks/frends-tasks/Frends.RabbitMQ.Read)
     /// </summary>
-    /// <param name="input">Connection and read parameters.</param>
+    /// <param name="input">Read parameters.</param>
+    /// <param name="connection">RabbitMQ connection parameters.</param>
     /// <param name="options">Additional parameters.</param>
     /// <param name="cancellationToken">A cancellation token provided by Frends Platform.</param>
     /// <returns>object { bool Success, List&lt;Message&gt; MessagesBase64, List&lt;Message&gt; MessageUTF8, object Error { string Message, Exception AdditionalInfo } }</returns>
-    public static async Task<Result> Read([PropertyTab] Input input, [PropertyTab] Options options, CancellationToken cancellationToken = default)
+    public static async Task<Result> Read(
+        [PropertyTab] Input input,
+        [PropertyTab] Connection connection,
+        [PropertyTab] Options options,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -31,7 +32,7 @@ public static class RabbitMQ
             var stringList = new List<Message>();
 
             cancellationToken.ThrowIfCancellationRequested();
-            await Helper.OpenConnectionIfClosed(connectionHelper, input);
+            await Helper.OpenConnectionIfClosed(connectionHelper, connection);
 
             while (input.ReadMessageCount-- > 0)
             {
@@ -77,7 +78,7 @@ public static class RabbitMQ
         }
         catch (Exception e)
         {
-            return ErrorHandler.Handle(e, options.ThrowErrorOnFailure, options.ErrorMessageOnFailure);
+            return e.Handle(options);
         }
     }
 

@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Threading.Tasks;
 using Frends.RabbitMQ.Read.Definitions;
 using RabbitMQ.Client;
 
@@ -45,7 +41,7 @@ namespace Frends.RabbitMQ.Read
             return allHeaders;
         }
 
-        internal static async Task OpenConnectionIfClosed(ConnectionHelper connectionHelper, Input connection)
+        internal static async Task OpenConnectionIfClosed(ConnectionHelper connectionHelper, Connection connection)
         {
             // Close connection if hostname has changed.
             if (IsConnectionHostNameChanged(connectionHelper, connection))
@@ -125,7 +121,7 @@ namespace Frends.RabbitMQ.Read
             }
         }
 
-        internal static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Input connection)
+        internal static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Connection connection)
         {
             // If no current connection, host name is not changed
             if (connectionHelper.AMQPConnection == null || connectionHelper.AMQPConnection.IsOpen == false)
@@ -168,7 +164,7 @@ namespace Frends.RabbitMQ.Read
             return cert;
         }
 
-        private static void ConfigureCommonSsl(ConnectionFactory factory, Input connection)
+        private static void ConfigureCommonSsl(ConnectionFactory factory, Connection connection)
         {
             factory.HostName = connection.Host;
             if (connection.Port != 0)
@@ -184,7 +180,7 @@ namespace Frends.RabbitMQ.Read
             };
         }
 
-        private static X509Certificate2 LoadCertificate(Input connection)
+        private static X509Certificate2 LoadCertificate(Connection connection)
         {
             return connection.CertificateSource switch
             {

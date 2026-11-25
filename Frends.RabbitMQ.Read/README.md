@@ -1,29 +1,31 @@
 # Frends.RabbitMQ.Read
-Frends RabbitMQ task to read message(s) from RabbitMQ queue.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) 
-[![Build](https://github.com/FrendsPlatform/Frends.RabbitMQ/actions/workflows/Read_build_and_test_on_main.yml/badge.svg)](https://github.com/FrendsPlatform/Frends.RabbitMQ/actions)
-![MyGet](https://img.shields.io/myget/frends-tasks/v/Frends.RabbitMQ.Read)
-![Coverage](https://app-github-custom-badges.azurewebsites.net/Badge?key=FrendsPlatform/Frends.RabbitMQ/Frends.RabbitMQ.Read|main)
+Frends Task for reading message(s) from a RabbitMQ queue.
 
-# Installing
+[![Build status](https://github.com/FrendsPlatform/Frends.RabbitMQ/actions/workflows/Read_main_release.yml/badge.svg)](https://github.com/FrendsPlatform/Frends.RabbitMQ/actions/workflows/Read_main_release.yml)
+![Code Coverage](https://app-github-custom-badges.azurewebsites.net/Badge?key=FrendsPlatform/Frends.RabbitMQ/Frends.RabbitMQ.Read|main)
+[![Repository License](https://img.shields.io/github/license/FrendsPlatform/Frends.RabbitMQ?label=License)](https://github.com/FrendsPlatform/Frends.RabbitMQ/blob/main/LICENSE)
 
-You can install the Task via frends UI Task View or you can find the NuGet package from the following NuGet feed https://www.myget.org/F/frends-tasks/api/v2.
+## Installing
+
+You can install the Task via Frends UI Task View.
 
 ## Building
 
+### Clone a copy of the repository
 
-Rebuild the project
+`git clone https://github.com/FrendsPlatform/Frends.RabbitMQ.git`
+
+### Build the project
 
 `dotnet build`
 
-Run tests
+### Run tests
 
-You will need access to RabbitMQ queue. Create command for docker: `docker run -d --hostname my-rabbit -p 5672:5672 -p 8080:1567 -e RABBITMQ_DEFAULT_USER=agent -e RABBITMQ_DEFAULT_PASS=agent123  rabbitmq:3.7-management`
+Tests start the required RabbitMQ containers themselves with Testcontainers, so only a running Docker daemon is needed.
 
 `dotnet test`
 
-
-Create a NuGet package
+### Create a NuGet package
 
 `dotnet pack --configuration Release`

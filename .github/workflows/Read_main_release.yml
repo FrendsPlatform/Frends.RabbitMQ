@@ -1,0 +1,23 @@
+name: Read main release
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Frends.RabbitMQ.Read/**'
+      - '.github/workflows/Read*.yml'
+  workflow_dispatch:
+
+jobs:
+  main_pipeline:
+    uses: FrendsPlatform/FrendsTasks/.github/workflows/official_task_pipeline.yml@main
+    with:
+      workflow_mode: main
+      os: lin
+      workdir: Frends.RabbitMQ.Read
+    secrets:
+      badge_service_api_key: ${{ secrets.BADGE_SERVICE_API_KEY }}
+      target_feed_api_key: ${{ secrets.TASKS_FEED_API_KEY }}
