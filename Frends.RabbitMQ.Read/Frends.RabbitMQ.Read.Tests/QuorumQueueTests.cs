@@ -50,14 +50,14 @@ public class QuorumQueueTests : TestBase
 
         var headers = new Dictionary<string, object?>()
         {
-                { "X-AppId", "application id" },
-                { "X-ClusterId", "cluster id" },
-                { "Content-Type", "content type" },
-                { "Content-Encoding", "content encoding" },
-                { "X-CorrelationId", "correlation id" },
-                { "X-Expiration", "100" },
-                { "X-MessageId", "message id" },
-                { "Custom-Header", "custom header" },
+            { "X-AppId", "application id" },
+            { "X-ClusterId", "cluster id" },
+            { "Content-Type", "content type" },
+            { "Content-Encoding", "content encoding" },
+            { "X-CorrelationId", "correlation id" },
+            { "X-Expiration", "100" },
+            { "X-MessageId", "message id" },
+            { "Custom-Header", "custom header" },
         };
 
         basicProperties.Headers = headers;
@@ -151,11 +151,8 @@ public class QuorumQueueTests : TestBase
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Headers.ContainsValue("custom header")));
     }
 
-    /// <summary>
-    /// Connect with URI and read single message.
-    /// </summary>
     [TestMethod]
-    public async Task TestReadSingleMessageWithURIQuorum()
+    public async Task TestReadSingleMessageWithUriQuorum()
     {
         Connection connection = new()
         {
