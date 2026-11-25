@@ -1,4 +1,4 @@
-﻿namespace Frends.RabbitMQ.Read.Definitions;
+namespace Frends.RabbitMQ.Read.Definitions;
 
 /// <summary>
 /// Message's data.

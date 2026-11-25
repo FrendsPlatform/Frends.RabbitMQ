@@ -26,56 +26,12 @@ public class UnitTests : TestBase
     [ClassCleanup]
     public static void Cleanup() => BaseCleanup();
 
-    public static async Task Publish(Connection connection, int messageCount, Dictionary<string, object?>? args = null)
-    {
-        ConnectionHelper connectionHelper = new();
-        var message = "Test message";
-
-        await Helper.OpenConnectionIfClosed(connectionHelper, connection);
-
-        await connectionHelper.AMQPModel.QueueDeclareAsync(
-            queue: Queue,
-            durable: false,
-            exclusive: false,
-            autoDelete: false,
-            arguments: args);
-
-        BasicProperties basicProperties = new()
-        {
-            Persistent = false,
-        };
-
-        var headers = new Dictionary<string, object?>()
-        {
-                { "X-AppId", "application id" },
-                { "X-ClusterId", "cluster id" },
-                { "Content-Type", "content type" },
-                { "Content-Encoding", "content encoding" },
-                { "X-CorrelationId", "correlation id" },
-                { "X-Expiration", "100" },
-                { "X-MessageId", "message id" },
-                { "Custom-Header", "custom header" },
-        };
-
-        basicProperties.Headers = headers;
-
-        for (var i = 0; i < messageCount; i++)
-        {
-            await connectionHelper.AMQPModel.BasicPublishAsync(
-                exchange: "exchange",
-                routingKey: Queue,
-                mandatory: true,
-                basicProperties: basicProperties,
-                body: Encoding.UTF8.GetBytes(message + " " + i));
-        }
-    }
-
     [TestInitialize]
     public async Task CreateExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(GetRabbitUri()) };
-        using var connection = await factory.CreateConnectionAsync();
-        using var channel = await connection.CreateChannelAsync();
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
         await channel.ExchangeDeclareAsync(Exchange, type: "fanout", durable: false, autoDelete: false);
         await channel.QueueDeclareAsync(Queue, durable: false, exclusive: false, autoDelete: false);
         await channel.QueueBindAsync(Queue, Exchange, routingKey: string.Empty);
@@ -86,15 +42,12 @@ public class UnitTests : TestBase
     public async Task DeleteExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(GetRabbitUri()) };
-        using var connection = await factory.CreateConnectionAsync();
-        using var channel = await connection.CreateChannelAsync();
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
         await channel.QueueDeleteAsync(Queue, false, false);
         await channel.ExchangeDeleteAsync(Exchange, ifUnused: false);
     }
 
-    /// <summary>
-    /// Connect with hostname and read single message.
-    /// </summary>
     [TestMethod]
     public async Task TestReadSingleMessageWithHostAutoAckAsync()
     {
@@ -151,9 +104,6 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Headers.ContainsValue("custom header")));
     }
 
-    /// <summary>
-    /// Connect with hostname and read multiple messages.
-    /// </summary>
     [TestMethod]
     public async Task TestReadMultipleMessagesWithHostAutoNack()
     {
@@ -169,17 +119,11 @@ public class UnitTests : TestBase
         await Publish(connection, 2);
         var result = await Read(connection, AckType.AutoNack, 2);
 
-        var test1 = result.MessagesBase64.Count;
-        var test2 = result.MessageUTF8.Count;
-
         Assert.IsTrue(result.MessagesBase64.Count > 1);
         Assert.IsTrue(result.MessageUTF8.Count > 1);
         Assert.IsTrue(result.Success);
     }
 
-    /// <summary>
-    /// Connect with URI and read single message.
-    /// </summary>
     [TestMethod]
     public async Task TestReadSingleMessageWithUriAutoNack()
     {
@@ -199,9 +143,6 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
     }
 
-    /// <summary>
-    /// Connect with URI and read single message.
-    /// </summary>
     [TestMethod]
     public async Task TestReadSingleMessageWithNoAck()
     {
@@ -243,9 +184,6 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
     }
 
-    /// <summary>
-    /// Connect with hostname and read multiple messages.
-    /// </summary>
     [TestMethod]
     public async Task TestReadMultipleMessagesWithHostAutoNackAndRequeue()
     {
@@ -261,9 +199,6 @@ public class UnitTests : TestBase
         await Publish(connection, 2);
         var result = await Read(connection, AckType.AutoNackAndRequeue, 2);
 
-        var test1 = result.MessagesBase64.Count;
-        var test2 = result.MessageUTF8.Count;
-
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
         Assert.IsTrue(result.Success);
@@ -273,9 +208,6 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 1")));
     }
 
-    /// <summary>
-    /// Connect with URI and read single message.
-    /// </summary>
     [TestMethod]
     public async Task TestReadSingleMessageWithUriAutoNackAndRequeue()
     {
@@ -317,9 +249,6 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
     }
 
-    /// <summary>
-    /// Connect with hostname and read multiple messages.
-    /// </summary>
     [TestMethod]
     public async Task TestReadMultipleMessagesWithHostAutoReject()
     {
@@ -335,9 +264,6 @@ public class UnitTests : TestBase
         await Publish(connection, 2);
         var result = await Read(connection, AckType.AutoReject, 2);
 
-        var test1 = result.MessagesBase64.Count;
-        var test2 = result.MessageUTF8.Count;
-
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
         Assert.IsTrue(result.Success);
@@ -347,9 +273,6 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 1")));
     }
 
-    /// <summary>
-    /// Connect with URI and read single message.
-    /// </summary>
     [TestMethod]
     public async Task TestReadSingleMessageWithUriAutoReject()
     {
@@ -391,9 +314,6 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.MessageUTF8.Any(x => x.Data.Equals("Test message 0")));
     }
 
-    /// <summary>
-    /// Connect with hostname and read multiple messages.
-    /// </summary>
     [TestMethod]
     public async Task TestReadMultipleMessagesWithHostAutoRejectAndRequeue()
     {
@@ -414,9 +334,6 @@ public class UnitTests : TestBase
         Assert.IsTrue(result.Success);
     }
 
-    /// <summary>
-    /// Connect with URI and read single message.
-    /// </summary>
     [TestMethod]
     public async Task TestReadSingleMessageWithUriAutoRejectAndRequeue()
     {
@@ -450,8 +367,7 @@ public class UnitTests : TestBase
             VirtualHost = "/nonexistent",
         };
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(
-            () => Read(connection));
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Read(connection));
 
         Assert.IsTrue(ex.Message.Contains("Failed to create channel"));
     }
@@ -459,17 +375,20 @@ public class UnitTests : TestBase
     [TestMethod]
     public async Task Should_Return_Failed_Result_When_ThrowErrorOnFailure_Is_False()
     {
-        var options = new Options
+        var opt = new Options
         {
             ThrowErrorOnFailure = false,
         };
 
-        var result = await RabbitMQ.Read(new Input(), new Connection(), options);
+        var result = await RabbitMQ.Read(new Input(), new Connection(), opt);
 
         Assert.IsFalse(result.Success, "Expected result.Success to be false");
     }
 
-    private static Task<Result> Read(Connection connection, AckType ackType = AckType.AutoAck, int readMessageCount = 1) =>
+    private static Task<Result> Read(
+        Connection connection,
+        AckType ackType = AckType.AutoAck,
+        int readMessageCount = 1) =>
         RabbitMQ.Read(
             new Input
             {
@@ -479,4 +398,48 @@ public class UnitTests : TestBase
             },
             connection,
             options);
+
+    private static async Task Publish(Connection connection, int messageCount, Dictionary<string, object?>? args = null)
+    {
+        ConnectionHelper connectionHelper = new();
+        var message = "Test message";
+
+        await Helper.OpenConnectionIfClosed(connectionHelper, connection);
+
+        await connectionHelper.AMQPModel.QueueDeclareAsync(
+            queue: Queue,
+            durable: false,
+            exclusive: false,
+            autoDelete: false,
+            arguments: args);
+
+        BasicProperties basicProperties = new()
+        {
+            Persistent = false,
+        };
+
+        var headers = new Dictionary<string, object?>()
+        {
+            { "X-AppId", "application id" },
+            { "X-ClusterId", "cluster id" },
+            { "Content-Type", "content type" },
+            { "Content-Encoding", "content encoding" },
+            { "X-CorrelationId", "correlation id" },
+            { "X-Expiration", "100" },
+            { "X-MessageId", "message id" },
+            { "Custom-Header", "custom header" },
+        };
+
+        basicProperties.Headers = headers;
+
+        for (var i = 0; i < messageCount; i++)
+        {
+            await connectionHelper.AMQPModel.BasicPublishAsync(
+                exchange: "exchange",
+                routingKey: Queue,
+                mandatory: true,
+                basicProperties: basicProperties,
+                body: Encoding.UTF8.GetBytes(message + " " + i));
+        }
+    }
 }
