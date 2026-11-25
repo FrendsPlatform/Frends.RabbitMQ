@@ -1,5 +1,3 @@
-﻿using Frends.RabbitMQ.Read.Definitions;
-using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,6 +7,8 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using Frends.RabbitMQ.Read.Definitions;
+using RabbitMQ.Client;
 
 namespace Frends.RabbitMQ.Read
 {
@@ -25,13 +25,14 @@ namespace Frends.RabbitMQ.Read
                 { "HEADER_CONTENTENCODING",   basicProperties.ContentEncoding != null ? basicProperties.ContentEncoding : null },
                 { "HEADER_CONTENTTYPE",       basicProperties.ContentType != null ? basicProperties.ContentType : null },
                 { "HEADER_CORRELATIONID",     basicProperties.CorrelationId != null ? basicProperties.CorrelationId : null },
-                { "HEADER_EXPIRATION",        basicProperties.Expiration != null ? basicProperties.Expiration : null},
-                { "HEADER_MESSAGEID",         basicProperties.MessageId != null ? basicProperties.MessageId : null }
+                { "HEADER_EXPIRATION",        basicProperties.Expiration != null ? basicProperties.Expiration : null },
+                { "HEADER_MESSAGEID",         basicProperties.MessageId != null ? basicProperties.MessageId : null },
             }
             .Where(h => h.Value != null)
             .ToDictionary(h => h.Key, h => h.Value);
 
             if (basicProperties.IsHeadersPresent())
+            {
                 foreach (var header in basicProperties.Headers.ToList())
                 {
                     if (header.Value.GetType() == typeof(byte[]))
@@ -39,11 +40,12 @@ namespace Frends.RabbitMQ.Read
                     else
                         allHeaders[header.Key] = header.Value.ToString();
                 }
+            }
 
             return allHeaders;
         }
 
-        internal static async Task OpenConnectionIfClosed(ConnectionHelper connectionHelper, Connection connection)
+        internal static async Task OpenConnectionIfClosed(ConnectionHelper connectionHelper, Input connection)
         {
             // Close connection if hostname has changed.
             if (IsConnectionHostNameChanged(connectionHelper, connection))
@@ -67,6 +69,7 @@ namespace Frends.RabbitMQ.Read
                                 factory.UserName = connection.Username;
                                 factory.Password = connection.Password;
                             }
+
                             factory.HostName = connection.Host;
 
                             if (connection.Port != 0) factory.Port = connection.Port;
@@ -122,7 +125,7 @@ namespace Frends.RabbitMQ.Read
             }
         }
 
-        internal static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Connection connection)
+        internal static bool IsConnectionHostNameChanged(ConnectionHelper connectionHelper, Input connection)
         {
             // If no current connection, host name is not changed
             if (connectionHelper.AMQPConnection == null || connectionHelper.AMQPConnection.IsOpen == false)
@@ -132,11 +135,11 @@ namespace Frends.RabbitMQ.Read
             {
                 case AuthenticationMethod.URI:
                     var newUri = new Uri(connection.Host);
-                    return (connectionHelper.AMQPConnection.Endpoint.HostName != newUri.Host);
+                    return connectionHelper.AMQPConnection.Endpoint.HostName != newUri.Host;
                 case AuthenticationMethod.Host:
                 case AuthenticationMethod.Certificate:
                 case AuthenticationMethod.CertificateWithCredentials:
-                    return (connectionHelper.AMQPConnection.Endpoint.HostName != connection.Host);
+                    return connectionHelper.AMQPConnection.Endpoint.HostName != connection.Host;
                 default:
                     throw new ArgumentException($"IsConnectionHostNameChanged: AuthenticationMethod missing.");
             }
@@ -165,7 +168,7 @@ namespace Frends.RabbitMQ.Read
             return cert;
         }
 
-        private static void ConfigureCommonSsl(ConnectionFactory factory, Connection connection)
+        private static void ConfigureCommonSsl(ConnectionFactory factory, Input connection)
         {
             factory.HostName = connection.Host;
             if (connection.Port != 0)
@@ -181,7 +184,7 @@ namespace Frends.RabbitMQ.Read
             };
         }
 
-        private static X509Certificate2 LoadCertificate(Connection connection)
+        private static X509Certificate2 LoadCertificate(Input connection)
         {
             return connection.CertificateSource switch
             {
@@ -189,7 +192,7 @@ namespace Frends.RabbitMQ.Read
                 CertificateSource.Base64 => new X509Certificate2(Convert.FromBase64String(connection.CertificateBase64), connection.ClientCertificatePassword),
                 CertificateSource.RawBytes => new X509Certificate2(connection.CertificateBytes, connection.ClientCertificatePassword),
                 CertificateSource.Store => LoadFromStore(connection.StoreThumbprint, connection.CertificateStoreLocation),
-                _ => throw new InvalidEnumArgumentException("Unknown certificate source.")
+                _ => throw new InvalidEnumArgumentException("Unknown certificate source."),
             };
         }
     }

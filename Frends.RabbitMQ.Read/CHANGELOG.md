@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.0.0] - 2026-11-25
+### Changed
+- **[Breaking Change]** Updated the Read task to .NET 8 and added cancellation support; configure its connection and read settings in the Input parameter.
+
 ## [2.3.0] - 2026-04-26
 ### Added
 - Added new property `Connection.AllowInvalidCertificate` to allow invalid certificates.

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Frends.RabbitMQ.Read.Definitions;
 
@@ -7,9 +7,23 @@ namespace Frends.RabbitMQ.Read.Definitions;
 /// </summary>
 public class Result
 {
+    internal Result(bool success, List<Message> messagesBase64, List<Message> messageUTF8)
+    {
+        Success = success;
+        MessagesBase64 = messagesBase64;
+        MessageUTF8 = messageUTF8;
+    }
+
+    internal Result(bool success, Error error)
+    {
+        Success = success;
+        Error = error;
+    }
+
     /// <summary>
     /// Read status. There was no messages to read if MessageUTF8 and MessagesBase64 are empty but Success=true.
     /// </summary>
+    /// <example>true</example>
     public bool Success { get; private set; }
 
     /// <summary>
@@ -29,17 +43,4 @@ public class Result
     /// </summary>
     /// <example>object { string Message, Exception AdditionalInfo }</example>
     public Error Error { get; set; }
-
-    internal Result(bool success, List<Message> messagesBase64, List<Message> messageUTF8)
-    {
-        Success = success;
-        MessagesBase64 = messagesBase64;
-        MessageUTF8 = messageUTF8;
-    }
-
-    internal Result(bool success, Error error)
-    {
-        Success = success;
-        Error = error;
-    }
 }

@@ -1,12 +1,12 @@
-﻿using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using Frends.RabbitMQ.Read.Definitions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
-using System.Text;
 
 namespace Frends.RabbitMQ.Read.Tests;
 
-//To run those tests, ca_certificate.crt must be installed as a trusted root certificate.
+// To run those tests, ca_certificate.crt must be installed as a trusted root certificate.
 [TestClass]
 public class CertificateTests : TestBase
 {
@@ -17,20 +17,6 @@ public class CertificateTests : TestBase
         Directory.GetCurrentDirectory(), "TestData", "certs");
 
     private static Options? options;
-
-    private static Connection DefaultConnection() => new()
-    {
-        Timeout = 30,
-        AuthenticationMethod = AuthenticationMethod.Certificate,
-        Host = RabbitHostName,
-        Port = GetRabbitSslPort(),
-        SslProtocol = SslProtocol.None,
-        QueueName = Queue,
-        ExchangeName = "",
-        RoutingKey = Queue,
-        AckType = AckType.AutoAck,
-        ReadMessageCount = 1,
-    };
 
     [ClassInitialize]
     public static void Init(TestContext testContext) => Initialize(testContext);
@@ -52,72 +38,6 @@ public class CertificateTests : TestBase
     {
         await DeleteFromContainerAsync(CreateStrictCertificateFactory());
         await DeleteFromContainerAsync(CreateAllowInvalidTlsFactory());
-    }
-
-    private static ConnectionFactory CreateStrictCertificateFactory()
-    {
-        var factory = new ConnectionFactory
-        {
-            HostName = RabbitHostName,
-            Port = GetRabbitSslPort(),
-            Ssl =
-            {
-                Enabled = true,
-                ServerName = RabbitHostName,
-                Version = System.Security.Authentication.SslProtocols.None,
-            },
-        };
-
-        var cert = new X509Certificate2(Path.Join(CertsDirPath, "client_certificate.pfx"), "pass");
-        factory.Ssl.Certs = new X509Certificate2Collection(cert);
-        factory.Ssl.CertificateValidationCallback = (_, _, _, _) => true;
-        factory.AuthMechanisms = new List<IAuthMechanismFactory>
-        {
-            new ExternalMechanismFactory()
-        };
-
-        return factory;
-    }
-
-    private static ConnectionFactory CreateAllowInvalidTlsFactory() => new()
-    {
-        HostName = RabbitHostName,
-        Port = GetRabbitAllowInvalidSslPort(),
-        UserName = RabbitUsername,
-        Password = RabbitPassword,
-        Ssl =
-        {
-            Enabled = true,
-            ServerName = RabbitHostName,
-            Version = System.Security.Authentication.SslProtocols.None,
-            CertificateValidationCallback = (_, _, _, _) => true,
-        },
-    };
-
-    private static async Task InitializeContainerAsync(ConnectionFactory factory)
-    {
-        await using var connection = await factory.CreateConnectionAsync();
-        await using var channel = await connection.CreateChannelAsync();
-        await channel.ExchangeDeclareAsync(Exchange, type: "fanout", durable: false, autoDelete: false);
-        await channel.QueueDeclareAsync(Queue, durable: false, exclusive: false, autoDelete: false);
-        await channel.QueueBindAsync(Queue, Exchange, routingKey: "");
-        await PublishTestMessage(channel);
-    }
-
-    private static async Task DeleteFromContainerAsync(ConnectionFactory factory)
-    {
-        await using var connection = await factory.CreateConnectionAsync();
-        await using var channel = await connection.CreateChannelAsync();
-        await channel.QueueDeleteAsync(Queue, false, false);
-        await channel.ExchangeDeleteAsync(Exchange, ifUnused: false);
-    }
-
-    private static async Task PublishTestMessage(IChannel channel)
-    {
-        var body = Encoding.UTF8.GetBytes("test message");
-        var props = new BasicProperties();
-        await channel.BasicPublishAsync(exchange: Exchange, routingKey: Queue, mandatory: false,
-            basicProperties: props, body: body);
     }
 
     [TestMethod]
@@ -236,5 +156,89 @@ public class CertificateTests : TestBase
         Assert.IsTrue(result.Success);
         Assert.AreEqual(1, result.MessageUTF8.Count);
         Assert.AreEqual("test message", result.MessageUTF8[0].Data);
+    }
+
+    private static ConnectionFactory CreateStrictCertificateFactory()
+    {
+        var factory = new ConnectionFactory
+        {
+            HostName = RabbitHostName,
+            Port = GetRabbitSslPort(),
+            Ssl =
+            {
+                Enabled = true,
+                ServerName = RabbitHostName,
+                Version = System.Security.Authentication.SslProtocols.None,
+            },
+        };
+
+        var cert = new X509Certificate2(Path.Join(CertsDirPath, "client_certificate.pfx"), "pass");
+        factory.Ssl.Certs = new X509Certificate2Collection(cert);
+        factory.Ssl.CertificateValidationCallback = (_, _, _, _) => true;
+        factory.AuthMechanisms = new List<IAuthMechanismFactory>
+        {
+            new ExternalMechanismFactory(),
+        };
+
+        return factory;
+    }
+
+    private static ConnectionFactory CreateAllowInvalidTlsFactory() => new()
+    {
+        HostName = RabbitHostName,
+        Port = GetRabbitAllowInvalidSslPort(),
+        UserName = RabbitUsername,
+        Password = RabbitPassword,
+        Ssl =
+        {
+            Enabled = true,
+            ServerName = RabbitHostName,
+            Version = System.Security.Authentication.SslProtocols.None,
+            CertificateValidationCallback = (_, _, _, _) => true,
+        },
+    };
+
+    private static Connection DefaultConnection() => new()
+    {
+        Timeout = 30,
+        AuthenticationMethod = AuthenticationMethod.Certificate,
+        Host = RabbitHostName,
+        Port = GetRabbitSslPort(),
+        SslProtocol = SslProtocol.None,
+        QueueName = Queue,
+        ExchangeName = string.Empty,
+        RoutingKey = Queue,
+        AckType = AckType.AutoAck,
+        ReadMessageCount = 1,
+    };
+
+    private static async Task InitializeContainerAsync(ConnectionFactory factory)
+    {
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
+        await channel.ExchangeDeclareAsync(Exchange, type: "fanout", durable: false, autoDelete: false);
+        await channel.QueueDeclareAsync(Queue, durable: false, exclusive: false, autoDelete: false);
+        await channel.QueueBindAsync(Queue, Exchange, routingKey: string.Empty);
+        await PublishTestMessage(channel);
+    }
+
+    private static async Task DeleteFromContainerAsync(ConnectionFactory factory)
+    {
+        await using var connection = await factory.CreateConnectionAsync();
+        await using var channel = await connection.CreateChannelAsync();
+        await channel.QueueDeleteAsync(Queue, false, false);
+        await channel.ExchangeDeleteAsync(Exchange, ifUnused: false);
+    }
+
+    private static async Task PublishTestMessage(IChannel channel)
+    {
+        var body = Encoding.UTF8.GetBytes("test message");
+        var props = new BasicProperties();
+        await channel.BasicPublishAsync(
+            exchange: Exchange,
+            routingKey: Queue,
+            mandatory: false,
+            basicProperties: props,
+            body: body);
     }
 }

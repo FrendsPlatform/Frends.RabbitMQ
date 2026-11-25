@@ -1,26 +1,24 @@
+using System.Text;
 using Frends.RabbitMQ.Read.Definitions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RabbitMQ.Client;
-using System.Text;
 
 namespace Frends.RabbitMQ.Read.Tests;
 
 [TestClass]
 public class UnitTests : TestBase
 {
-    /// <summary>
-    /// You will need access to RabbitMQ queue
-    /// URI is resolved from the RabbitMQ test container's mapped AMQP port.
-    /// Access UI from http://localhost:15672 username: agent, password: agent123
-    /// </summary>
-
-    private static string _testUri => GetRabbitUri();
-    private const string _testHost = RabbitHostName;
-    private const string _exchange = "exchange";
-    private const string _queue = "queue";
-    private const string _username = RabbitUsername;
-    private const string _psw = RabbitPassword;
+    private const string TestHost = RabbitHostName;
+    private const string Exchange = "exchange";
+    private const string Queue = "queue";
+    private const string Username = RabbitUsername;
+    private const string Psw = RabbitPassword;
     private static Options? options;
+
+    /// <summary>
+    /// URI is resolved from the RabbitMQ test container's mapped AMQP port.
+    /// </summary>
+    private static string TestUri => GetRabbitUri();
 
     [ClassInitialize]
     public static void Init(TestContext testContext) => Initialize(testContext);
@@ -28,15 +26,59 @@ public class UnitTests : TestBase
     [ClassCleanup]
     public static void Cleanup() => BaseCleanup();
 
+    public static async Task Publish(Connection connection, int messageCount, Dictionary<string, object?>? args = null)
+    {
+        ConnectionHelper connectionHelper = new();
+        var message = "Test message";
+
+        await Helper.OpenConnectionIfClosed(connectionHelper, connection);
+
+        await connectionHelper.AMQPModel.QueueDeclareAsync(
+            queue: connection.QueueName,
+            durable: false,
+            exclusive: false,
+            autoDelete: false,
+            arguments: args);
+
+        BasicProperties basicProperties = new()
+        {
+            Persistent = false,
+        };
+
+        var headers = new Dictionary<string, object?>()
+        {
+                { "X-AppId", "application id" },
+                { "X-ClusterId", "cluster id" },
+                { "Content-Type", "content type" },
+                { "Content-Encoding", "content encoding" },
+                { "X-CorrelationId", "correlation id" },
+                { "X-Expiration", "100" },
+                { "X-MessageId", "message id" },
+                { "Custom-Header", "custom header" },
+        };
+
+        basicProperties.Headers = headers;
+
+        for (var i = 0; i < messageCount; i++)
+        {
+            await connectionHelper.AMQPModel.BasicPublishAsync(
+                exchange: "exchange",
+                routingKey: connection.RoutingKey,
+                mandatory: true,
+                basicProperties: basicProperties,
+                body: Encoding.UTF8.GetBytes(message + " " + i));
+        }
+    }
+
     [TestInitialize]
     public async Task CreateExchangeAndQueue()
     {
         var factory = new ConnectionFactory { Uri = new Uri(GetRabbitUri()) };
         using var connection = await factory.CreateConnectionAsync();
         using var channel = await connection.CreateChannelAsync();
-        await channel.ExchangeDeclareAsync(_exchange, type: "fanout", durable: false, autoDelete: false);
-        await channel.QueueDeclareAsync(_queue, durable: false, exclusive: false, autoDelete: false);
-        await channel.QueueBindAsync(_queue, _exchange, routingKey: "");
+        await channel.ExchangeDeclareAsync(Exchange, type: "fanout", durable: false, autoDelete: false);
+        await channel.QueueDeclareAsync(Queue, durable: false, exclusive: false, autoDelete: false);
+        await channel.QueueBindAsync(Queue, Exchange, routingKey: string.Empty);
         options = new Options();
     }
 
@@ -46,8 +88,8 @@ public class UnitTests : TestBase
         var factory = new ConnectionFactory { Uri = new Uri(GetRabbitUri()) };
         using var connection = await factory.CreateConnectionAsync();
         using var channel = await connection.CreateChannelAsync();
-        await channel.QueueDeleteAsync(_queue, false, false);
-        await channel.ExchangeDeleteAsync(_exchange, ifUnused: false);
+        await channel.QueueDeleteAsync(Queue, false, false);
+        await channel.ExchangeDeleteAsync(Exchange, ifUnused: false);
     }
 
     /// <summary>
@@ -58,12 +100,12 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testHost,
+            Host = TestHost,
             Port = GetRabbitPort(),
-            Username = _username,
-            Password = _psw,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Username = Username,
+            Password = Psw,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
@@ -123,12 +165,12 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testHost,
+            Host = TestHost,
             Port = GetRabbitPort(),
-            Username = _username,
-            Password = _psw,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Username = Username,
+            Password = Psw,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
@@ -141,7 +183,6 @@ public class UnitTests : TestBase
 
         var test1 = result.MessagesBase64.Count;
         var test2 = result.MessageUTF8.Count;
-
 
         Assert.IsTrue(result.MessagesBase64.Count > 1);
         Assert.IsTrue(result.MessageUTF8.Count > 1);
@@ -156,9 +197,9 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testUri,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Host = TestUri,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
@@ -184,9 +225,9 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testUri,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Host = TestUri,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
@@ -209,12 +250,12 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testHost,
+            Host = TestHost,
             Port = GetRabbitPort(),
-            Username = _username,
-            Password = _psw,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Username = Username,
+            Password = Psw,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
@@ -240,12 +281,12 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testHost,
+            Host = TestHost,
             Port = GetRabbitPort(),
-            Username = _username,
-            Password = _psw,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Username = Username,
+            Password = Psw,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
@@ -258,7 +299,6 @@ public class UnitTests : TestBase
 
         var test1 = result.MessagesBase64.Count;
         var test2 = result.MessageUTF8.Count;
-
 
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
@@ -277,9 +317,9 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testUri,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Host = TestUri,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
@@ -302,12 +342,12 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testHost,
+            Host = TestHost,
             Port = GetRabbitPort(),
-            Username = _username,
-            Password = _psw,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Username = Username,
+            Password = Psw,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
@@ -333,12 +373,12 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testHost,
+            Host = TestHost,
             Port = GetRabbitPort(),
-            Username = _username,
-            Password = _psw,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Username = Username,
+            Password = Psw,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
@@ -351,7 +391,6 @@ public class UnitTests : TestBase
 
         var test1 = result.MessagesBase64.Count;
         var test2 = result.MessageUTF8.Count;
-
 
         Assert.AreEqual(2, result.MessagesBase64.Count);
         Assert.AreEqual(2, result.MessageUTF8.Count);
@@ -370,9 +409,9 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testUri,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Host = TestUri,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
@@ -395,12 +434,12 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testHost,
+            Host = TestHost,
             Port = GetRabbitPort(),
-            Username = _username,
-            Password = _psw,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Username = Username,
+            Password = Psw,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
@@ -426,12 +465,12 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testHost,
+            Host = TestHost,
             Port = GetRabbitPort(),
-            Username = _username,
-            Password = _psw,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Username = Username,
+            Password = Psw,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
             ExchangeName = null,
 
@@ -455,9 +494,9 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testUri,
-            RoutingKey = _queue,
-            QueueName = _queue,
+            Host = TestUri,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.URI,
             ExchangeName = null,
 
@@ -480,21 +519,20 @@ public class UnitTests : TestBase
     {
         Connection connection = new()
         {
-            Host = _testHost,
+            Host = TestHost,
             Port = GetRabbitPort(),
             Username = "agent",
             Password = "agent123",
-            RoutingKey = _queue,
-            QueueName = _queue,
+            RoutingKey = Queue,
+            QueueName = Queue,
             AuthenticationMethod = AuthenticationMethod.Host,
-            ExchangeName = "",
+            ExchangeName = string.Empty,
             Timeout = 30,
-            VirtualHost = "/nonexistent"
+            VirtualHost = "/nonexistent",
         };
 
         var ex = await Assert.ThrowsExceptionAsync<Exception>(
-            () => RabbitMQ.Read(connection, options)
-        );
+            () => RabbitMQ.Read(connection, options));
 
         Assert.IsTrue(ex.Message.Contains("Failed to create channel"));
     }
@@ -504,50 +542,11 @@ public class UnitTests : TestBase
     {
         var options = new Options
         {
-            ThrowErrorOnFailure = false
+            ThrowErrorOnFailure = false,
         };
 
         var result = await RabbitMQ.Read(new Connection(), options);
 
         Assert.IsFalse(result.Success, "Expected result.Success to be false");
-    }
-
-    public static async Task Publish(Connection connection, int messageCount, Dictionary<string, object?>? args = null)
-    {
-        ConnectionHelper connectionHelper = new();
-        var message = "Test message";
-
-        await Helper.OpenConnectionIfClosed(connectionHelper, connection);
-
-        await connectionHelper.AMQPModel.QueueDeclareAsync(queue: connection.QueueName,
-                                    durable: false,
-                                    exclusive: false,
-                                    autoDelete: false,
-                                    arguments: args);
-
-        BasicProperties basicProperties = new()
-        {
-            Persistent = false
-        };
-
-        var headers = new Dictionary<string, object?>() {
-                { "X-AppId", "application id" },
-                { "X-ClusterId", "cluster id" },
-                { "Content-Type", "content type" },
-                { "Content-Encoding", "content encoding" },
-                { "X-CorrelationId", "correlation id" },
-                { "X-Expiration", "100" },
-                { "X-MessageId", "message id" },
-                { "Custom-Header", "custom header" }
-        };
-
-        basicProperties.Headers = headers;
-
-        for (var i = 0; i < messageCount; i++)
-            await connectionHelper.AMQPModel.BasicPublishAsync(exchange: "exchange",
-                routingKey: connection.RoutingKey,
-                mandatory: true,
-                basicProperties: basicProperties,
-                body: Encoding.UTF8.GetBytes(message + " " + i));
     }
 }
