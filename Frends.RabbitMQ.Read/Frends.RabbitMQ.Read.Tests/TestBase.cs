@@ -1,4 +1,5 @@
-﻿using DotNet.Testcontainers.Builders;
+using System.Security.Cryptography.X509Certificates;
+using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -6,19 +7,19 @@ namespace Frends.RabbitMQ.Read.Tests;
 
 public abstract class TestBase
 {
-    private static readonly object Lock = new();
     protected const string RabbitHostName = "localhost";
     protected const string RabbitUsername = "agent";
     protected const string RabbitPassword = "agent123";
     private const string CertificateMappedUsername = "CN=agent";
 
+    private static readonly object Lock = new();
+    private static readonly string CertsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "certs");
+    private static readonly string ConfigsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "configs");
+
     private static IContainer? rabbitContainer;
     private static IContainer? rabbitAllowInvalidContainer;
     private static int refCount;
     private static bool isInitialized;
-
-    private static readonly string CertsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "certs");
-    private static readonly string ConfigsDirPath = Path.Join(Directory.GetCurrentDirectory(), "TestData", "configs");
 
     protected static void Initialize(TestContext testContext)
     {
@@ -34,6 +35,8 @@ public abstract class TestBase
         }
 
         if (!shouldInitialize) return;
+
+        TrustTestCertificateAuthority();
 
         rabbitContainer = new ContainerBuilder()
             .WithImage("rabbitmq:4.2.3-management")
@@ -88,15 +91,6 @@ public abstract class TestBase
 
     protected static string GetRabbitUri() => $"amqp://{RabbitUsername}:{RabbitPassword}@{RabbitHostName}:{GetRabbitPort()}";
 
-    private static async Task InitializeAsync()
-    {
-        await rabbitContainer?.StartAsync()!;
-        await ConfigureContainerAsync(rabbitContainer);
-
-        await rabbitAllowInvalidContainer?.StartAsync()!;
-        await ConfigureContainerAsync(rabbitAllowInvalidContainer);
-    }
-
     protected static void BaseCleanup()
     {
         bool shouldCleanup = false;
@@ -114,6 +108,34 @@ public abstract class TestBase
         if (!shouldCleanup) return;
 
         CleanupAsync().GetAwaiter().GetResult();
+    }
+
+    // Makes the test CA trusted for this process only, so no manual OS-level setup is needed.
+    private static void TrustTestCertificateAuthority()
+    {
+        var caPath = Path.Combine(CertsDirPath, "ca_certificate.crt");
+
+        if (OperatingSystem.IsWindows())
+        {
+            using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadWrite);
+            using var ca = new X509Certificate2(caPath);
+            if (!store.Certificates.Contains(ca)) store.Add(ca);
+        }
+        else
+        {
+            // .NET reads this lazily on first chain build, so it must be set before any TLS connection.
+            Environment.SetEnvironmentVariable("SSL_CERT_FILE", caPath);
+        }
+    }
+
+    private static async Task InitializeAsync()
+    {
+        await rabbitContainer?.StartAsync()!;
+        await ConfigureContainerAsync(rabbitContainer);
+
+        await rabbitAllowInvalidContainer?.StartAsync()!;
+        await ConfigureContainerAsync(rabbitAllowInvalidContainer);
     }
 
     private static async Task CleanupAsync()

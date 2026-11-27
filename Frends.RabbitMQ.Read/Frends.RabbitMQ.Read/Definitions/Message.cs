@@ -1,5 +1,3 @@
-﻿using System.Collections.Generic;
-
 namespace Frends.RabbitMQ.Read.Definitions;
 
 /// <summary>

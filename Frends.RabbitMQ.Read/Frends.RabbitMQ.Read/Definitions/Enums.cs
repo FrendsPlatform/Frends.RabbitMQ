@@ -1,4 +1,4 @@
-﻿namespace Frends.RabbitMQ.Read.Definitions;
+namespace Frends.RabbitMQ.Read.Definitions;
 
 /// <summary>
 /// Authentication methods.
@@ -23,7 +23,7 @@ public enum AuthenticationMethod
     /// <summary>
     /// Connect with certificate and credentials.
     /// </summary>
-    CertificateWithCredentials
+    CertificateWithCredentials,
 }
 
 /// <summary>
@@ -31,12 +31,17 @@ public enum AuthenticationMethod
 /// </summary>
 public enum CertificateSource
 {
-#pragma warning disable CS1591 // self explanatory.
+    /// <summary>Load a certificate from a file.</summary>
     File,
+
+    /// <summary>Load a certificate from the certificate store.</summary>
     Store,
+
+    /// <summary>Load a Base64-encoded certificate.</summary>
     Base64,
-    RawBytes
-#pragma warning restore CS1591 // self explanatory.
+
+    /// <summary>Load certificate bytes.</summary>
+    RawBytes,
 }
 
 /// <summary>
@@ -44,11 +49,14 @@ public enum CertificateSource
 /// </summary>
 public enum SslProtocol
 {
-#pragma warning disable CS1591 // self explanatory.
+    /// <summary>Use the system default SSL protocol.</summary>
     None,
+
+    /// <summary>Use TLS 1.2.</summary>
     Tls12,
-    Tls13
-#pragma warning restore CS1591 // self explanatory.
+
+    /// <summary>Use TLS 1.3.</summary>
+    Tls13,
 }
 
 /// <summary>
@@ -56,10 +64,11 @@ public enum SslProtocol
 /// </summary>
 public enum CertificateStoreLocation
 {
-#pragma warning disable CS1591 // self explanatory.
+    /// <summary>Search the local machine certificate store.</summary>
     LocalMachine,
-    CurrentUser
-#pragma warning restore CS1591 // self explanatory.
+
+    /// <summary>Search the current user's certificate store.</summary>
+    CurrentUser,
 }
 
 /// <summary>
@@ -71,22 +80,27 @@ public enum AckType
     /// Ack message will not be sent
     /// </summary>
     NoAck,
+
     /// <summary>
     /// Ack message will be sent automatically
     /// </summary>
     AutoAck,
+
     /// <summary>
     /// Nack message will be sent automatically
     /// </summary>
     AutoNack,
+
     /// <summary>
     /// Nack message will be sent automatically and a message will be requeued
     /// </summary>
     AutoNackAndRequeue,
+
     /// <summary>
     /// Message will be automatically rejected
     /// </summary>
     AutoReject,
+
     /// <summary>
     /// Message will be automatically rejected and requeued
     /// </summary>

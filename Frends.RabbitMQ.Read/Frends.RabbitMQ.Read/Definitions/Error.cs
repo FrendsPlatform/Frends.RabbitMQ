@@ -1,5 +1,3 @@
-using System;
-
 namespace Frends.RabbitMQ.Read.Definitions;
 
 /// <summary>

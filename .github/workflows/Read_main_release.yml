@@ -1,21 +1,26 @@
-name: Read build test
+name: Read main release
+permissions:
+  contents: write
 
 on:
   push:
-    branches-ignore: 
+    branches:
       - main
     paths:
       - 'Frends.RabbitMQ.Read/**'
+      - '.github/workflows/Read*.yml'
   workflow_dispatch:
 
 jobs:
-  build:
-    uses: FrendsPlatform/FrendsTasks/.github/workflows/linux_build_test.yml@main
+  main_pipeline:
+    uses: FrendsPlatform/FrendsTasks/.github/workflows/official_task_pipeline.yml@main
     with:
+      workflow_mode: main
+      os: lin
       workdir: Frends.RabbitMQ.Read
-      prebuild_command: |
+      pretest_command: |
         sudo cp Frends.RabbitMQ.Read.Tests/TestData/certs/ca_certificate.crt /usr/local/share/ca-certificates/
         sudo update-ca-certificates
     secrets:
       badge_service_api_key: ${{ secrets.BADGE_SERVICE_API_KEY }}
-      test_feed_api_key: ${{ secrets.TASKS_TEST_FEED_API_KEY }}
+      target_feed_api_key: ${{ secrets.TASKS_FEED_API_KEY }}

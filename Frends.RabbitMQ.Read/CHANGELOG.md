@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.0.0] - 2026-11-25
+### Changed
+- **[Breaking Change]** Moved `ReadMessageCount`, `AckType`, `QueueName`, `ExchangeName`, and `RoutingKey` from the `Connection` tab to the `Input` tab.
+- Updated the task to .NET 8.
+
 ## [2.3.0] - 2026-04-26
 ### Added
 - Added new property `Connection.AllowInvalidCertificate` to allow invalid certificates.
