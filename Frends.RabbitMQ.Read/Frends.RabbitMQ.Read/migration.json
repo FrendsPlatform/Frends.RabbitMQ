@@ -1,0 +1,38 @@
+[
+  {
+    "Task": "Frends.RabbitMQ.Read",
+    "Migrations": [
+      {
+        "Version": "3.0.0",
+        "Description": "Moved read parameters from the Connection tab to the Input tab",
+        "Migration": [
+          {
+            "Type": "Copy",
+            "Source": "Connection.ReadMessageCount",
+            "Target": "Input.ReadMessageCount"
+          },
+          {
+            "Type": "Copy",
+            "Source": "Connection.AckType",
+            "Target": "Input.AckType"
+          },
+          {
+            "Type": "Copy",
+            "Source": "Connection.QueueName",
+            "Target": "Input.QueueName"
+          },
+          {
+            "Type": "Copy",
+            "Source": "Connection.ExchangeName",
+            "Target": "Input.ExchangeName"
+          },
+          {
+            "Type": "Copy",
+            "Source": "Connection.RoutingKey",
+            "Target": "Input.RoutingKey"
+          }
+        ]
+      }
+    ]
+  }
+]

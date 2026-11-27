@@ -20,6 +20,7 @@
         <None Include="FrendsTaskMetadata.json" Pack="true" PackagePath="/">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <Content Include="migration.json" PackagePath="/" Pack="true"/>
         <AdditionalFiles Include="FrendsTaskMetadata.json" />
     </ItemGroup>
 
